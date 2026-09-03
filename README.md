@@ -1,14 +1,64 @@
-# Kuroko
+<div align="center">
 
-A macOS agent that watches your screen, notices when you are stuck, and guides
-you through it — in a floating overlay in the top-right corner and, when you
-ask, out loud.
+# 黒子 &nbsp;Kuroko
+
+**A macOS agent that notices when you are stuck, and quietly tells you why.**
+
+</div>
+
+```
+  you, at 16:04                              Kuroko, top-right of your screen
+  ────────────────────────────               ─────────────────────────────────
+  D14 just went red and you                 ╭───────────────────────────────╮
+  have no idea why. The formula             │  Fix the #REF! error in D14   │
+  looks fine. You start opening             │  Microsoft Excel · Q3-Budget  │
+  sheets to find out what moved.            │                               │
+                                            │  ✔  D14 points at Sheet2!B7,  │
+                                            │     which no longer exists    │
+                                            │  ○  Repoint it at the renamed │
+                                            │     Costs range               │
+                                            ╰───────────────────────────────╯
+```
+
+No hotkey, no prompt, no tab-switch. It was already watching, it worked out
+what broke, and it said so in the corner.
 
 Named after the 黒子 of kabuki: the black-clad stage assistant who helps the
 performer while the audience agrees not to see them.
 
 Everything runs on-device. No API keys, no per-token cost, nothing leaves the
 machine.
+
+## Where the project is now
+
+Working today, for two apps:
+
+| | |
+| --- | --- |
+| **Watches** | Ghostty and Excel, via the Accessibility API and AppleScript |
+| **Decides** | Apple Foundation Models, 0.4-0.8 s, 8/8 correct over the fixture suite |
+| **Writes** | The card, from the screen text alone |
+| **Costs** | Nothing. No network, no tokens, no account |
+
+The pipeline is real and end-to-end: something changes on screen, the readers
+describe it, triage decides whether you are stuck, and a card appears only if
+you are. `kuroko-probe` holds it to 13 fixtures and passes.
+
+Two things are honestly not done.
+
+**Advice quality.** The on-device model reliably tells you *that* something is
+wrong and *what* is wrong. It does not reliably tell you *how to fix it* — it
+invents keyboard shortcuts, recommends `gem install` for a Homebrew formula, and
+once emitted a fragment of webpack source. The Tier 3 sidecar exists to take
+over the writing and is fully wired and tested, but its weights cannot be
+downloaded on the network this was built on, so nothing has measured whether a
+27B model actually fixes it.
+
+**Everything else on screen.** Browsers and Teams expose no usable text, so they
+are excluded rather than guessed at. They need the OCR path, which is not
+written.
+
+Not started: Tier 4, the voice in and voice out.
 
 ## Why it is built in tiers
 
@@ -23,8 +73,8 @@ model on a real event.
 | ---- | ------------ | ---- |
 | 0 | Accessibility observers and frontmost-app changes decide something happened at all | ~1 ms |
 | 1 | Pull structured context: AX tree, AppleScript for Excel/Word/Numbers, Vision OCR as fallback | ~10-50 ms |
-| 2 | Apple Foundation Models triages "does this need help?" from text alone | ~100 ms |
-| 3 | Local Qwen3.5-VL via MLX writes the actual guidance | ~1-3 s |
+| 2 | Apple Foundation Models triages "does this need help?" from text alone | ~400-800 ms |
+| 3 | A local model via MLX writes the actual guidance | ~1-3 s |
 | 4 | SpeechTranscriber in, Kokoro-82M out | ~180-500 ms to first audio |
 
 Tier 2 is the load-bearing one. It is free and on-device, so it can run on every
@@ -38,12 +88,16 @@ formula and computed value. Browsers and Teams expose a focused element with
 nothing in it, so they are excluded until the OCR path exists — otherwise every
 screen event there spends a model call describing an empty room.
 
-For those two apps Tier 3 never runs. Once the context is already text there is
-nothing a vision model can add; it would cost seconds and several gigabytes of
-weights to re-read what Tier 1 stated exactly. So Tier 2 writes the guidance
-too, and Tier 3 stays for the apps that only give us pixels.
+Tier 3 was originally a vision model, and for these two apps it has nothing to
+do: once the context is already text, re-reading it from pixels costs seconds
+and gigabytes to learn what Tier 1 stated exactly. So the first working
+prototype had no Python in it at all — Tier 2 wrote the cards as well as
+triaging them.
 
-The consequence is that the first working prototype has no Python in it at all.
+That is still the fallback, but it is not the plan, because Tier 2 turned out to
+be bad at writing. Tier 3 is now a *text* model whose only job is the prose,
+which is a different tier-3 than the table above originally meant. Vision moves
+to whenever the OCR path arrives.
 
 ### What the on-device model is and is not good at
 
