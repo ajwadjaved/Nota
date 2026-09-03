@@ -49,14 +49,33 @@ Python owns inference because `mlx-vlm` and `mlx-audio` are far ahead of
 - Apple Silicon; 48 GB unified memory comfortably runs Qwen3.6-27B-4bit
 - Xcode 26, XcodeGen (`brew install xcodegen`)
 
-## Build
+## Install
+
+```sh
+./install.sh
+```
+
+Builds Release, installs to `/Applications/Kuroko.app`, and launches it. Safe
+to re-run; it quits the running copy first. Once installed it appears in
+Spotlight and Launchpad like any other app, and Settings (Cmd-comma) has a
+launch-at-login toggle.
+
+`./uninstall.sh` removes it and resets the privacy grants.
+
+The installer deletes the built bundle out of DerivedData once it has been
+copied. Spotlight indexes DerivedData on some machines, and a second identical
+"Kuroko" in the launcher is confusing. Only the `.app` is removed, so the next
+build relinks rather than recompiling.
+
+## Build for development
 
 ```sh
 xcodegen generate
-xcodebuild -project Kuroko.xcodeproj -scheme Kuroko -configuration Debug \
-  -derivedDataPath build build
-open build/Build/Products/Debug/Kuroko.app
+xcodebuild -project Kuroko.xcodeproj -scheme Kuroko -configuration Debug build
 ```
+
+Or just open `Kuroko.xcodeproj`. Note that a Debug build carries the same
+bundle ID as the installed copy, so run one or the other, not both.
 
 ## Signing, and why it matters here
 

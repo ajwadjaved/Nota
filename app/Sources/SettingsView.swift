@@ -2,9 +2,25 @@ import SwiftUI
 
 struct SettingsView: View {
     private let permissions = PermissionsManager.shared
+    private let loginItem = LoginItemManager.shared
 
     var body: some View {
         Form {
+            Section("General") {
+                Toggle(
+                    "Launch Kuroko at login",
+                    isOn: Binding(
+                        get: { loginItem.isEnabled },
+                        set: { loginItem.setEnabled($0) }
+                    )
+                )
+                if let error = loginItem.lastError {
+                    Text(error)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                }
+            }
+
             Section("Permissions") {
                 row(
                     "Screen Recording",
@@ -32,7 +48,10 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 460)
-        .onAppear { permissions.refresh() }
+        .onAppear {
+            permissions.refresh()
+            loginItem.refresh()
+        }
     }
 
     private func row(
