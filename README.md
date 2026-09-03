@@ -30,12 +30,79 @@ model on a real event.
 Tier 2 is the load-bearing one. It is free and on-device, so it can run on every
 screen event and keep the expensive vision model idle most of the time.
 
+### Where the ladder actually stops today
+
+Two apps hand over real text: Ghostty exposes its buffer through the
+Accessibility API, and Excel answers AppleScript with the active cell's address,
+formula and computed value. Browsers and Teams expose a focused element with
+nothing in it, so they are excluded until the OCR path exists — otherwise every
+screen event there spends a model call describing an empty room.
+
+For those two apps Tier 3 never runs. Once the context is already text there is
+nothing a vision model can add; it would cost seconds and several gigabytes of
+weights to re-read what Tier 1 stated exactly. So Tier 2 writes the guidance
+too, and Tier 3 stays for the apps that only give us pixels.
+
+The consequence is that the first working prototype has no Python in it at all.
+
+### What the on-device model is and is not good at
+
+Measured with `kuroko-probe` against fixed screens, the split is sharp and it
+did not move across three prompt revisions.
+
+Triage is good. Eight of eight decisions were correct in 0.4-0.8 s: it catches a
+missing scheme, a `command not found`, a `#DIV/0!` and a `#REF!`, and it stays
+quiet for a clean run, a long successful build, an idle prompt and a
+non-blocking `npm warn`. Diagnosis is good too — "Scheme 'Kurroko' not found in
+the project", "xcodegen is not installed".
+
+Writing the fix is not good, and prompting did not save it:
+
+- It invents mechanisms. Early versions produced "Press Command + Shift + A"
+  and "open the Formula Auditing Tool", neither of which exists. Banning
+  keystrokes and menu paths outright removed those, but not the underlying
+  habit.
+- It states remembered facts that are wrong. `sudo gem install xcodegen`
+  survived every revision; xcodegen is a Homebrew formula.
+- It gets the direction backwards. Told that `Kurroko` is not a scheme in a
+  project containing `Kuroko`, it suggested changing `Kuroko` to `Kurroko`.
+- Under the sampled retry path it emitted `var __webpack_require__ = ...` into
+  a step, which is training data rather than advice.
+
+So the model can tell you reliably *that* something is wrong and *what* is
+wrong, and cannot tell you *how to fix it*. `isPlausibleStep` exists to keep the
+worst of that off the screen, and a card with no surviving steps is dropped
+rather than shown.
+
+### The probe
+
+```sh
+xcodebuild -project Kuroko.xcodeproj -scheme KurokoProbe build
+"$(xcodebuild -project Kuroko.xcodeproj -scheme KurokoProbe \
+  -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2; exit}')/kuroko-probe"
+```
+
+It runs the real `ContextBrief` and `FoundationModelsProvider` against the
+fixtures in `probe/Fixtures.swift` and exits non-zero when a verdict disagrees
+with its expectation. It shares the sources it exercises rather than copying
+them, so a prompt cannot drift away from its test.
+
+Most fixtures are negative cases, because the silence bias is what an innocuous
+prompt edit breaks first. The fixtures that expect no brief at all need no
+model, so they still run with Apple Intelligence switched off.
+
+Note what the probe does *not* check: it asserts the decision, not the prose. It
+passed 13/13 on the run that emitted webpack source.
+
 ## Layout
 
 ```
-app/Sources/        Swift menu-bar app: capture, Accessibility, speech, overlay
-sidecar/            Python MLX sidecar: vision-language model + TTS
-project.yml         XcodeGen spec; Kuroko.xcodeproj is generated, not committed
+app/Sources/Context/    Tier 0 and 1: what happened, and the cheap description of it
+app/Sources/Guidance/   Tier 2: triage, guidance, and the engine that rations calls
+app/Sources/Overlay/    The floating card
+probe/                  Fixture-driven harness for the prompts
+sidecar/                Python MLX sidecar: vision-language model + TTS
+project.yml             XcodeGen spec; Kuroko.xcodeproj is generated, not committed
 ```
 
 Swift owns OS integration because it is the only reasonable way to handle TCC
@@ -46,6 +113,9 @@ Python owns inference because `mlx-vlm` and `mlx-audio` are far ahead of
 ## Requirements
 
 - macOS 26 or later (Apple Foundation Models, `SpeechAnalyzer`)
+- Apple Intelligence switched on in System Settings. Being on an eligible Mac is
+  not enough; until it is enabled `SystemLanguageModel.availability` reports
+  `appleIntelligenceNotEnabled` and the menu-bar item says so
 - Apple Silicon; 48 GB unified memory comfortably runs Qwen3.6-27B-4bit
 - Xcode 26, XcodeGen (`brew install xcodegen`)
 
@@ -129,6 +199,26 @@ for s in Accessibility ScreenCapture Microphone AppleEvents; do
   tccutil reset $s dev.kuroko.Kuroko
 done
 ```
+
+## What keeps the model idle
+
+The readers run on a timer, so nearly every tick describes a screen that has not
+meaningfully changed. `GuidanceEngine` applies three rules before anything
+reaches a model, and they matter more than the prompts do:
+
+- Reads are flattened into a `ContextBrief` and compared by a fingerprint of the
+  text that *would be sent*. A moving mouse or a clock in a window title is not
+  an event.
+- A brief that differs from the last one re-arms a 1.2 s settle timer, so
+  nothing runs while a command is still being typed.
+- Triage gates guidance. The longer call only happens after a yes, and the
+  in-flight request is cancelled as soon as the screen changes under it.
+
+Triage is also deliberately biased toward silence — a successful command, long
+output, an empty cell and a non-blocking warning all have to come back false,
+because interrupting someone who is working is worse than staying quiet. The
+Context Inspector shows each verdict with its reason and the exact text the
+model saw, which is where to look when a verdict seems wrong.
 
 ## Two constraints worth knowing early
 

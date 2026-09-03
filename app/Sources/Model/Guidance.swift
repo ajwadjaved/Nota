@@ -28,15 +28,3 @@ struct Guidance: Identifiable, Hashable {
         self.steps = steps
     }
 }
-
-extension Guidance {
-    static let demo = Guidance(
-        title: "Fix the #REF! error in D14",
-        source: "Microsoft Excel - Q3-Budget.xlsx",
-        steps: [
-            GuidanceStep(text: "D14 points at Sheet2!B7, which no longer exists", isDone: true),
-            GuidanceStep(text: "Repoint the formula at the renamed Costs range"),
-            GuidanceStep(text: "Wrap it in IFERROR so blank rows stay empty"),
-        ]
-    )
-}

@@ -4,14 +4,17 @@ import SwiftUI
 /// app is giving us usable context or whether it needs an OCR fallback.
 struct ContextInspectorView: View {
     let coordinator: ContextCoordinator
+    let engine: GuidanceEngine
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if let context = coordinator.current {
                     appSection(context)
+                    pipelineSection()
                     scriptedSection(context)
                     accessibilitySection(context)
+                    briefSection()
                 } else {
                     Text("No context yet.")
                         .foregroundStyle(.secondary)
@@ -21,8 +24,6 @@ struct ContextInspectorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 460, minHeight: 420)
-        .onAppear { coordinator.startPolling() }
-        .onDisappear { coordinator.stopPolling() }
     }
 
     private func appSection(_ context: ScreenContext) -> some View {
@@ -32,6 +33,54 @@ struct ContextInspectorView: View {
             field("PID", String(context.app.pid))
             field("Window", context.windowTitle ?? "-")
             field("Read time", String(format: "%.1f ms", context.readDuration * 1000))
+        }
+    }
+
+    /// The part worth watching: whether triage decided to spend a model call,
+    /// and what it cost. A row of "Quiet" verdicts with sensible reasons is the
+    /// pipeline working, not the pipeline asleep.
+    private func pipelineSection() -> some View {
+        section("Pipeline") {
+            field("Provider", engine.providerName)
+            field("Phase", engine.phase.label)
+
+            switch engine.phase {
+            case .quiet(let reason): note("Stayed quiet: \(reason)")
+            case .failed(let reason): note("Error: \(reason)")
+            case .modelUnavailable(let reason): note(reason)
+            case .unsupported: note("Not one of the prototype's two apps.")
+            default: EmptyView()
+            }
+
+            if let verdict = engine.lastVerdict {
+                field("Needs help", verdict.needsHelp ? "yes" : "no")
+                field("Reason", verdict.reason)
+            }
+            if let triage = engine.triageDuration {
+                field("Triage", String(format: "%.0f ms", triage * 1000))
+            }
+            if let guidance = engine.guidanceDuration {
+                field("Guidance", String(format: "%.0f ms", guidance * 1000))
+            }
+        }
+    }
+
+    /// Exactly the text handed to the model. When a verdict looks wrong this is
+    /// almost always where the answer is, because the model saw less, or more,
+    /// than you assumed it did.
+    @ViewBuilder
+    private func briefSection() -> some View {
+        section("Model input") {
+            if let brief = engine.lastBrief {
+                field("Kind", brief.kind.rawValue)
+                field("Source", brief.source)
+                Text(brief.text)
+                    .font(.system(size: 10, design: .monospaced))
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                note("Nothing in this app is worth sending to a model.")
+            }
         }
     }
 

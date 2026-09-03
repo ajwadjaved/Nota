@@ -77,3 +77,26 @@ targets:
         NSAppleEventsUsageDescription: >-
           Kuroko reads what you are working on, such as the active Excel cell and
           its formula, so its guidance matches what is actually on screen.
+
+  # Runs the real brief-building and prompt code against fixed screens, so the
+  # prompts can be changed without driving Excel by hand. It shares the sources
+  # it exercises rather than copying them; a drifting copy of a prompt would be
+  # worse than no test at all.
+  KurokoProbe:
+    type: tool
+    platform: macOS
+
+    sources:
+      - path: probe
+      - path: app/Sources/Model
+      - path: app/Sources/Guidance
+
+    settings:
+      base:
+        PRODUCT_NAME: kuroko-probe
+        PRODUCT_BUNDLE_IDENTIFIER: dev.kuroko.Probe
+        # A plain tool needs no entitlements to reach the system model, and
+        # demanding a real signature here would make the probe fail for reasons
+        # that have nothing to do with the prompts.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO

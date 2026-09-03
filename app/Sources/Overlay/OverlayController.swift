@@ -39,11 +39,24 @@ final class OverlayController {
         isVisible = false
     }
 
+    /// Hides the panel *and* forgets what it said, so the hotkey cannot bring
+    /// back advice about a cell in a workbook the user has since left.
+    func clear() {
+        model.guidance = nil
+        hide()
+    }
+
+    /// The hotkey path. With nothing to say the panel still comes up, in its
+    /// empty state, because a hotkey that does nothing visible reads as broken.
     func toggle() {
         if isVisible {
             hide()
+        } else if let guidance = model.guidance {
+            show(guidance: guidance)
         } else {
-            show(guidance: model.guidance ?? .demo)
+            reposition()
+            panel.orderFrontRegardless()
+            isVisible = true
         }
     }
 

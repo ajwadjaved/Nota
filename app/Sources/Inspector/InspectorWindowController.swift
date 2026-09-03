@@ -5,9 +5,11 @@ import SwiftUI
 final class InspectorWindowController {
     private var window: NSWindow?
     private let coordinator: ContextCoordinator
+    private let engine: GuidanceEngine
 
-    init(coordinator: ContextCoordinator) {
+    init(coordinator: ContextCoordinator, engine: GuidanceEngine) {
         self.coordinator = coordinator
+        self.engine = engine
     }
 
     func show() {
@@ -25,7 +27,7 @@ final class InspectorWindowController {
         )
         window.title = "Context Inspector"
         window.contentView = NSHostingView(
-            rootView: ContextInspectorView(coordinator: coordinator)
+            rootView: ContextInspectorView(coordinator: coordinator, engine: engine)
         )
         window.isReleasedWhenClosed = false
         window.center()

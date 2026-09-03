@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlay: OverlayController?
     private var menuBar: MenuBarController?
     private var inspector: InspectorWindowController?
+    private var engine: GuidanceEngine?
     private let context = ContextCoordinator()
     private let hotkeys = HotkeyManager()
 
@@ -15,15 +16,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let overlay = OverlayController()
         self.overlay = overlay
 
-        let inspector = InspectorWindowController(coordinator: context)
+        let engine = GuidanceEngine(
+            present: { overlay.show(guidance: $0) },
+            dismiss: { overlay.clear() }
+        )
+        self.engine = engine
+
+        let inspector = InspectorWindowController(coordinator: context, engine: engine)
         self.inspector = inspector
 
         menuBar = MenuBarController(
+            engine: engine,
             onToggleOverlay: { overlay.toggle() },
             onRequestPermissions: { Task { await PermissionsManager.shared.requestAll() } },
             onShowInspector: { inspector.show() }
         )
 
+        context.onRead = { [weak engine] in engine?.handle($0) }
         context.start()
 
         hotkeys.register(
@@ -34,13 +43,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         PermissionsManager.shared.refresh()
-
-        // M1 placeholder. Milestone 3 replaces this with output from the model.
-        overlay.show(guidance: .demo)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         hotkeys.unregister()
         context.stop()
+        engine?.stop()
     }
 }

@@ -10,6 +10,11 @@ final class ContextCoordinator {
     private(set) var current: ScreenContext?
     private(set) var lastAppRead: AppReadResult = .unavailable
 
+    /// Called on every read, changed or not. Deciding whether a read is worth
+    /// reacting to needs the brief, not the raw context, so that judgement
+    /// belongs downstream in `GuidanceEngine` rather than here.
+    var onRead: ((ScreenContext) -> Void)?
+
     private var activationObserver: NSObjectProtocol?
     private var pollTimer: Timer?
 
@@ -21,6 +26,7 @@ final class ContextCoordinator {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
+        startPolling()
         refresh()
     }
 
@@ -33,9 +39,11 @@ final class ContextCoordinator {
     }
 
     /// App-activation alone misses focus changes *inside* an app, such as
-    /// moving between Excel cells. Real AX observers replace this; until then
-    /// the inspector polls so it shows something live.
-    func startPolling(interval: TimeInterval = 1.0) {
+    /// moving between Excel cells. Real AX observers replace this.
+    ///
+    /// 1.5s rather than 1s because each tick can send Excel an Apple event,
+    /// which is milliseconds of blocked main thread rather than microseconds.
+    func startPolling(interval: TimeInterval = 1.5) {
         stopPolling()
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
@@ -70,7 +78,7 @@ final class ContextCoordinator {
         let appRead = AppReaders.read(bundleID: identity.bundleID)
         lastAppRead = appRead
 
-        current = ScreenContext(
+        let context = ScreenContext(
             app: identity,
             windowTitle: AccessibilityReader.focusedWindowTitle(pid: identity.pid),
             focused: AccessibilityReader.focusedElement(pid: identity.pid),
@@ -81,5 +89,8 @@ final class ContextCoordinator {
             capturedAt: .now,
             readDuration: Date().timeIntervalSince(started)
         )
+
+        current = context
+        onRead?(context)
     }
 }
