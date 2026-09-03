@@ -161,6 +161,7 @@ app/Sources/Guidance/   Tier 2: triage, guidance, and the engine that rations ca
 app/Sources/Overlay/    The floating card
 probe/                  Fixture-driven harness for the prompts
 sidecar/                Python MLX sidecar: vision-language model + TTS
+tools/render-icon.swift Draws the app icon; run it to regenerate the .appiconset
 project.yml             XcodeGen spec; Nota.xcodeproj is generated, not committed
 ```
 
