@@ -17,7 +17,7 @@ struct Fixture {
     var context: ScreenContext
 }
 
-private func ghostty(_ buffer: String, title: String = "~/Dev/Kuroko") -> ScreenContext {
+private func ghostty(_ buffer: String, title: String = "~/Dev/Nota") -> ScreenContext {
     ScreenContext(
         app: AppIdentity(name: "Ghostty", bundleID: "com.mitchellh.ghostty", pid: 1),
         windowTitle: title,
@@ -48,11 +48,11 @@ enum Fixtures {
             expectation: .guidance,
             context: ghostty(
                 """
-                ~/Dev/Kuroko main
-                > xcodebuild -scheme Kurroko build
-                xcodebuild: error: The project named "Kuroko" does not contain a scheme named "Kurroko".
+                ~/Dev/Nota main
+                > xcodebuild -scheme Notta build
+                xcodebuild: error: The project named "Nota" does not contain a scheme named "Notta".
                 The "-list" option can be used to find the names of the schemes in the project.
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 >
                 """
             )
@@ -63,10 +63,10 @@ enum Fixtures {
             expectation: .guidance,
             context: ghostty(
                 """
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 > xcodegen generate
                 zsh: command not found: xcodegen
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 >
                 """
             )
@@ -101,12 +101,12 @@ enum Fixtures {
             expectation: .quiet,
             context: ghostty(
                 """
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 > git status --short
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 > ls
                 README.md  app  install.sh  probe  project.yml  sidecar
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 >
                 """
             )
@@ -117,14 +117,14 @@ enum Fixtures {
             expectation: .quiet,
             context: ghostty(
                 """
-                > xcodebuild -scheme Kuroko build
+                > xcodebuild -scheme Nota build
                 CompileSwiftSources normal arm64 com.apple.xcode.tools.swift.compiler
-                    cd /Users/me/Dev/Kuroko
+                    cd /Users/me/Dev/Nota
                     export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-                Ld /Users/me/Library/Developer/Xcode/DerivedData/Kuroko/Build/Kuroko.app
-                CodeSign /Users/me/Library/Developer/Xcode/DerivedData/Kuroko/Build/Kuroko.app
+                Ld /Users/me/Library/Developer/Xcode/DerivedData/Nota/Build/Nota.app
+                CodeSign /Users/me/Library/Developer/Xcode/DerivedData/Nota/Build/Nota.app
                 ** BUILD SUCCEEDED **
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 >
                 """
             )
@@ -135,7 +135,7 @@ enum Fixtures {
             expectation: .quiet,
             context: ghostty(
                 """
-                ~/Dev/Kuroko main
+                ~/Dev/Nota main
                 >
                 """
             )

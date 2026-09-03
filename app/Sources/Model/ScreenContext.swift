@@ -28,7 +28,7 @@ struct AppFact: Hashable, Identifiable {
     var value: String
 }
 
-/// Everything Kuroko knows about the current moment, assembled from the
+/// Everything Nota knows about the current moment, assembled from the
 /// cheapest sources available before any model is involved.
 struct ScreenContext {
     var app: AppIdentity

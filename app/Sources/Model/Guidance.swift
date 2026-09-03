@@ -12,7 +12,7 @@ struct GuidanceStep: Identifiable, Hashable {
     }
 }
 
-/// A single piece of advice: what Kuroko thinks you are trying to do, and the
+/// A single piece of advice: what Nota thinks you are trying to do, and the
 /// steps to get there.
 struct Guidance: Identifiable, Hashable {
     let id: UUID

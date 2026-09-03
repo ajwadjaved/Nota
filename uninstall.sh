@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Remove Kuroko from /Applications and forget the permissions it was granted.
+# Remove Nota from /Applications and forget the permissions it was granted.
 set -euo pipefail
 
-APP_NAME="Kuroko"
-BUNDLE_ID="dev.kuroko.Kuroko"
+APP_NAME="Nota"
+BUNDLE_ID="dev.nota.Nota"
 DEST="/Applications/${APP_NAME}.app"
 
 say() { printf '\033[38;5;108m%s\033[0m\n' "$*"; }

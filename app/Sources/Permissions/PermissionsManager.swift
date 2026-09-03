@@ -4,7 +4,7 @@ import ApplicationServices
 import CoreGraphics
 import Observation
 
-/// Kuroko needs three separate TCC grants. They are deliberately requested
+/// Nota needs three separate TCC grants. They are deliberately requested
 /// on demand rather than all at launch, so the user sees why each one is asked
 /// for.
 @MainActor

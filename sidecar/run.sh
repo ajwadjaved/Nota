@@ -7,7 +7,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${HERE}/.venv"
-CA_BUNDLE="${VENV}/kuroko-ca.pem"
+CA_BUNDLE="${VENV}/nota-ca.pem"
 
 [[ -x "${VENV}/bin/python" ]] || {
   echo "No virtualenv. Run sidecar/setup.sh first." >&2
@@ -15,7 +15,7 @@ CA_BUNDLE="${VENV}/kuroko-ca.pem"
 }
 
 if [[ "${1:-}" == "--stub" ]]; then
-  export KUROKO_MODEL=stub
+  export NOTA_MODEL=stub
 fi
 
 # Only needed if the weights are not cached yet and Python has to fetch them;

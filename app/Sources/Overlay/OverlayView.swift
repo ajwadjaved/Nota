@@ -13,7 +13,7 @@ struct OverlayView: View {
                     row(for: step)
                 }
             } else {
-                Text("Kuroko is watching")
+                Text("Nota is watching")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }

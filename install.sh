@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build Kuroko in Release and install it into /Applications so Spotlight and
+# Build Nota in Release and install it into /Applications so Spotlight and
 # Launchpad can find it. Safe to re-run; replaces any existing install.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="Kuroko"
-BUNDLE_ID="dev.kuroko.Kuroko"
+APP_NAME="Nota"
+BUNDLE_ID="dev.nota.Nota"
 DEST="/Applications/${APP_NAME}.app"
 
 say() { printf '\033[38;5;108m%s\033[0m\n' "$*"; }
@@ -16,8 +16,8 @@ die() {
 }
 
 # ── Preflight ─────────────────────────────────────────────────────────────
-[[ "$(uname -s)" == "Darwin" ]] || die "Kuroko is macOS only."
-[[ "$(uname -m)" == "arm64" ]] || die "Kuroko needs Apple Silicon."
+[[ "$(uname -s)" == "Darwin" ]] || die "Nota is macOS only."
+[[ "$(uname -m)" == "arm64" ]] || die "Nota needs Apple Silicon."
 
 command -v xcodebuild >/dev/null || die "xcodebuild not found. Install Xcode."
 command -v xcodegen >/dev/null || die "xcodegen not found. Run: brew install xcodegen"
@@ -48,11 +48,11 @@ xcodegen generate >/dev/null
 say "Building Release (this takes a minute)..."
 # Deliberately using Xcode's default DerivedData rather than a path inside the
 # repo. Apple already excludes DerivedData from Spotlight; a build directory
-# here gets indexed, and then searching "Kuroko" returns several identical
+# here gets indexed, and then searching "Nota" returns several identical
 # looking apps. A .metadata_never_index marker does not reliably prevent it.
 xcodebuild -project "${APP_NAME}.xcodeproj" -scheme "${APP_NAME}" \
-  -configuration Release build >/tmp/kuroko-install.log 2>&1 ||
-  die "Build failed. See /tmp/kuroko-install.log"
+  -configuration Release build >/tmp/nota-install.log 2>&1 ||
+  die "Build failed. See /tmp/nota-install.log"
 
 PRODUCTS_DIR="$(
   xcodebuild -project "${APP_NAME}.xcodeproj" -scheme "${APP_NAME}" \
@@ -82,7 +82,7 @@ codesign --verify --deep --strict "$DEST" ||
   die "Installed app fails signature verification."
 
 # Drop the bundle we just copied out of DerivedData. Spotlight indexes it on
-# some machines, and a second identical "Kuroko" in the launcher is confusing.
+# some machines, and a second identical "Nota" in the launcher is confusing.
 # Only the .app goes; the compiled object files stay cached, so the next build
 # just relinks rather than starting over.
 rm -rf "$BUILT"
@@ -100,7 +100,7 @@ cat <<EOF
 $(say "${APP_NAME} is in /Applications and will show up in Spotlight.")
 
 If this is the first install, grant its permissions once:
-  Menu bar eye icon > Grant Permissions
+  Menu bar bird icon > Grant Permissions
 
-To have it start with the Mac: Settings (Cmd-comma) > Launch Kuroko at login.
+To have it start with the Mac: Settings (Cmd-comma) > Launch Nota at login.
 EOF

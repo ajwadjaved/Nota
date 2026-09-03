@@ -29,7 +29,7 @@ final class OverlayController {
     func show(guidance: Guidance) {
         model.guidance = guidance
         reposition()
-        // Not `makeKeyAndOrderFront`: that would activate Kuroko and steal focus.
+        // Not `makeKeyAndOrderFront`: that would activate Nota and steal focus.
         panel.orderFrontRegardless()
         isVisible = true
     }

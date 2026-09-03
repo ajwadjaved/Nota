@@ -49,7 +49,7 @@ struct TieredGuidanceProvider: GuidanceProvider {
             // that would not produce JSON, an out-of-memory, a bad prompt.
             // Falling back keeps the overlay useful, and the thrown error would
             // otherwise be the only record, so it goes to the log.
-            NSLog("Kuroko: sidecar failed, falling back to Tier 2: %@", error.localizedDescription)
+            NSLog("Nota: sidecar failed, falling back to Tier 2: %@", error.localizedDescription)
             return try await triager.guidance(for: brief)
         }
     }

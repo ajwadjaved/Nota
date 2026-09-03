@@ -8,7 +8,7 @@ struct SettingsView: View {
         Form {
             Section("General") {
                 Toggle(
-                    "Launch Kuroko at login",
+                    "Launch Nota at login",
                     isOn: Binding(
                         get: { loginItem.isEnabled },
                         set: { loginItem.setEnabled($0) }

@@ -34,13 +34,13 @@ def expect_parse_error(label: str, raw: str) -> None:
         print(f"FAIL  {label}: expected a ParseError")
 
 
-GOOD = '{"title": "Fix the scheme name", "diagnosis": "No such scheme.", "steps": ["Use Kuroko"]}'
+GOOD = '{"title": "Fix the scheme name", "diagnosis": "No such scheme.", "steps": ["Use Nota"]}'
 
 
 def main() -> int:
     draft = parse_draft(GOOD)
     check("clean JSON", draft["title"] == "Fix the scheme name")
-    check("steps parsed", draft["steps"] == ["Use Kuroko"], repr(draft["steps"]))
+    check("steps parsed", draft["steps"] == ["Use Nota"], repr(draft["steps"]))
 
     # Models wrap JSON in a fence more often than not.
     draft = parse_draft(f"```json\n{GOOD}\n```")
@@ -91,10 +91,10 @@ def main() -> int:
     # The brief must reach the model intact; a dropped window title or body is
     # the kind of wiring bug that looks like a bad model.
     rendered = build_prompt(
-        {"appName": "Ghostty", "windowTitle": "~/Dev/Kuroko", "text": "zsh: command not found"}
+        {"appName": "Ghostty", "windowTitle": "~/Dev/Nota", "text": "zsh: command not found"}
     )
     check("prompt names the app", "Application: Ghostty" in rendered)
-    check("prompt names the window", "Window: ~/Dev/Kuroko" in rendered)
+    check("prompt names the window", "Window: ~/Dev/Nota" in rendered)
     check("prompt carries the text", rendered.endswith("zsh: command not found"))
 
     rendered = build_prompt({"appName": "Ghostty", "text": "x"})

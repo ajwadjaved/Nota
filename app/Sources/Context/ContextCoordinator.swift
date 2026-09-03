@@ -66,7 +66,7 @@ final class ContextCoordinator {
         }
 
         // Reading our own overlay back would be circular, and there is nothing
-        // in Kuroko worth guiding anyone through.
+        // in Nota worth guiding anyone through.
         guard frontmost.processIdentifier != getpid() else { return }
 
         let identity = AppIdentity(

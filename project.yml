@@ -1,7 +1,7 @@
-name: Kuroko
+name: Nota
 
 options:
-  bundleIdPrefix: dev.kuroko
+  bundleIdPrefix: dev.nota
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
@@ -32,7 +32,7 @@ settings:
     CODE_SIGNING_REQUIRED: YES
 
 targets:
-  Kuroko:
+  Nota:
     type: application
     platform: macOS
 
@@ -41,14 +41,14 @@ targets:
 
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.kuroko.Kuroko
-        PRODUCT_NAME: Kuroko
+        PRODUCT_BUNDLE_IDENTIFIER: dev.nota.Nota
+        PRODUCT_NAME: Nota
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         COMBINE_HIDPI_IMAGES: YES
 
     entitlements:
-      path: app/Kuroko.entitlements
+      path: app/Nota.entitlements
       properties:
         # The Accessibility API and sending Apple events to arbitrary apps are
         # both incompatible with the App Sandbox. This also rules out Mac App
@@ -63,26 +63,26 @@ targets:
     info:
       path: app/Info.plist
       properties:
-        CFBundleName: Kuroko
-        CFBundleDisplayName: Kuroko
+        CFBundleName: Nota
+        CFBundleDisplayName: Nota
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "26.0"
         # Menu-bar only: no Dock icon, no main window.
         LSUIElement: true
         NSMicrophoneUsageDescription: >-
-          Kuroko listens while you hold the hotkey so you can ask questions out loud.
+          Nota listens while you hold the hotkey so you can ask questions out loud.
         NSSpeechRecognitionUsageDescription: >-
-          Kuroko transcribes your spoken questions on-device so it can answer them.
+          Nota transcribes your spoken questions on-device so it can answer them.
         NSAppleEventsUsageDescription: >-
-          Kuroko reads what you are working on, such as the active Excel cell and
+          Nota reads what you are working on, such as the active Excel cell and
           its formula, so its guidance matches what is actually on screen.
 
   # Runs the real brief-building and prompt code against fixed screens, so the
   # prompts can be changed without driving Excel by hand. It shares the sources
   # it exercises rather than copying them; a drifting copy of a prompt would be
   # worse than no test at all.
-  KurokoProbe:
+  NotaProbe:
     type: tool
     platform: macOS
 
@@ -93,8 +93,8 @@ targets:
 
     settings:
       base:
-        PRODUCT_NAME: kuroko-probe
-        PRODUCT_BUNDLE_IDENTIFIER: dev.kuroko.Probe
+        PRODUCT_NAME: nota-probe
+        PRODUCT_BUNDLE_IDENTIFIER: dev.nota.Probe
         # A plain tool needs no entitlements to reach the system model, and
         # demanding a real signature here would make the probe fail for reasons
         # that have nothing to do with the prompts.

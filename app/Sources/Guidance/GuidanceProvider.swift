@@ -57,7 +57,7 @@ extension GuidanceDraft {
 
         // The diagnosis leads as an already-established fact, which is what the
         // filled checkmark means: this part is not for the reader to do, it is
-        // what Kuroko worked out.
+        // what Nota worked out.
         let diagnosis = Self.clean(diagnosis)
         let leading =
             diagnosis.isEmpty

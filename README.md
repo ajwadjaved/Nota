@@ -1,13 +1,13 @@
 <div align="center">
 
-# 黒子 &nbsp;Kuroko
+# Nota
 
 **A macOS agent that notices when you are stuck, and quietly tells you why.**
 
 </div>
 
 ```
-  you, at 16:04                              Kuroko, top-right of your screen
+  you, at 16:04                              Nota, top-right of your screen
   ────────────────────────────               ─────────────────────────────────
   D14 just went red and you                 ╭───────────────────────────────╮
   have no idea why. The formula             │  Fix the #REF! error in D14   │
@@ -23,8 +23,9 @@
 No hotkey, no prompt, no tab-switch. It was already watching, it worked out
 what broke, and it said so in the corner.
 
-Named after the 黒子 of kabuki: the black-clad stage assistant who helps the
-performer while the audience agrees not to see them.
+Named for the *nota* of *nota bene*: the mark a reader leaves in the margin
+next to the thing that matters. Beside the work, never on top of it, and easy
+to ignore.
 
 Everything runs on-device. No API keys, no per-token cost, nothing leaves the
 machine.
@@ -42,7 +43,7 @@ Working today, for two apps:
 
 The pipeline is real and end-to-end: something changes on screen, the readers
 describe it, triage decides whether you are stuck, and a card appears only if
-you are. `kuroko-probe` holds it to 13 fixtures and passes.
+you are. `nota-probe` holds it to 13 fixtures and passes.
 
 Two things are honestly not done.
 
@@ -101,13 +102,13 @@ to whenever the OCR path arrives.
 
 ### What the on-device model is and is not good at
 
-Measured with `kuroko-probe` against fixed screens, the split is sharp and it
+Measured with `nota-probe` against fixed screens, the split is sharp and it
 did not move across three prompt revisions.
 
 Triage is good. Eight of eight decisions were correct in 0.4-0.8 s: it catches a
 missing scheme, a `command not found`, a `#DIV/0!` and a `#REF!`, and it stays
 quiet for a clean run, a long successful build, an idle prompt and a
-non-blocking `npm warn`. Diagnosis is good too — "Scheme 'Kurroko' not found in
+non-blocking `npm warn`. Diagnosis is good too — "Scheme 'Notta' not found in
 the project", "xcodegen is not installed".
 
 Writing the fix is not good, and prompting did not save it:
@@ -118,8 +119,8 @@ Writing the fix is not good, and prompting did not save it:
   habit.
 - It states remembered facts that are wrong. `sudo gem install xcodegen`
   survived every revision; xcodegen is a Homebrew formula.
-- It gets the direction backwards. Told that `Kurroko` is not a scheme in a
-  project containing `Kuroko`, it suggested changing `Kuroko` to `Kurroko`.
+- It gets the direction backwards. Told that `Notta` is not a scheme in a
+  project containing `Nota`, it suggested changing `Nota` to `Notta`.
 - Under the sampled retry path it emitted `var __webpack_require__ = ...` into
   a step, which is training data rather than advice.
 
@@ -131,9 +132,9 @@ rather than shown.
 ### The probe
 
 ```sh
-xcodebuild -project Kuroko.xcodeproj -scheme KurokoProbe build
-"$(xcodebuild -project Kuroko.xcodeproj -scheme KurokoProbe \
-  -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2; exit}')/kuroko-probe"
+xcodebuild -project Nota.xcodeproj -scheme NotaProbe build
+"$(xcodebuild -project Nota.xcodeproj -scheme NotaProbe \
+  -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2; exit}')/nota-probe"
 ```
 
 It runs the real `ContextBrief` and provider code against the fixtures in
@@ -160,7 +161,7 @@ app/Sources/Guidance/   Tier 2: triage, guidance, and the engine that rations ca
 app/Sources/Overlay/    The floating card
 probe/                  Fixture-driven harness for the prompts
 sidecar/                Python MLX sidecar: vision-language model + TTS
-project.yml             XcodeGen spec; Kuroko.xcodeproj is generated, not committed
+project.yml             XcodeGen spec; Nota.xcodeproj is generated, not committed
 ```
 
 Swift owns OS integration because it is the only reasonable way to handle TCC
@@ -184,7 +185,7 @@ Python owns inference because `mlx-vlm` and `mlx-audio` are far ahead of
 ./install.sh
 ```
 
-Builds Release, installs to `/Applications/Kuroko.app`, and launches it. Safe
+Builds Release, installs to `/Applications/Nota.app`, and launches it. Safe
 to re-run; it quits the running copy first. Once installed it appears in
 Spotlight and Launchpad like any other app, and Settings (Cmd-comma) has a
 launch-at-login toggle.
@@ -193,17 +194,17 @@ launch-at-login toggle.
 
 The installer deletes the built bundle out of DerivedData once it has been
 copied. Spotlight indexes DerivedData on some machines, and a second identical
-"Kuroko" in the launcher is confusing. Only the `.app` is removed, so the next
+"Nota" in the launcher is confusing. Only the `.app` is removed, so the next
 build relinks rather than recompiling.
 
 ## Build for development
 
 ```sh
 xcodegen generate
-xcodebuild -project Kuroko.xcodeproj -scheme Kuroko -configuration Debug build
+xcodebuild -project Nota.xcodeproj -scheme Nota -configuration Debug build
 ```
 
-Or just open `Kuroko.xcodeproj`. Note that a Debug build carries the same
+Or just open `Nota.xcodeproj`. Note that a Debug build carries the same
 bundle ID as the installed copy, so run one or the other, not both.
 
 ## Signing, and why it matters here
@@ -216,7 +217,7 @@ An Apple Development certificate fixes this. The designated requirement then
 binds to the bundle ID and the certificate rather than a binary hash:
 
 ```
-identifier "dev.kuroko.Kuroko" and anchor apple generic and
+identifier "dev.nota.Nota" and anchor apple generic and
 certificate leaf[subject.CN] = "Apple Development: ..."
 ```
 
@@ -255,7 +256,7 @@ signature so the prompts come back cleanly:
 
 ```sh
 for s in Accessibility ScreenCapture Microphone AppleEvents; do
-  tccutil reset $s dev.kuroko.Kuroko
+  tccutil reset $s dev.nota.Nota
 done
 ```
 
@@ -298,7 +299,7 @@ in which case Tier 2 writes the card as before. That is worse advice, not no
 advice, and the inspector's "Written by" row says which one answered.
 
 It is an HTTP server on loopback rather than a subprocess the app spawns, for
-two reasons. Loading a 27B model takes tens of seconds and Kuroko is a login
+two reasons. Loading a 27B model takes tens of seconds and Nota is a login
 item that gets quit and relaunched, so tying the weights to the app's lifetime
 would pay that cost every time. And a crash inside MLX cannot take the menu-bar
 app down with it. It binds `127.0.0.1` only: this process receives the contents
@@ -323,7 +324,7 @@ something else entirely.
 from Python dies with `CERTIFICATE_VERIFY_FAILED: self-signed certificate in
 certificate chain` while `curl` and the browser work fine. `setup.sh` appends
 the machine's own trusted roots to certifi's bundle and writes
-`.venv/kuroko-ca.pem`; pass it as `SSL_CERT_FILE`. Disabling verification would
+`.venv/nota-ca.pem`; pass it as `SSL_CERT_FILE`. Disabling verification would
 also make the error go away and is the wrong trade.
 
 **The weights come from a different host than the API.** `huggingface.co`
@@ -350,7 +351,7 @@ rules out Mac App Store distribution.
 
 ## Non-goals for v1
 
-Kuroko does not click, type, or control anything. Guidance only. That keeps it
+Nota does not click, type, or control anything. Guidance only. That keeps it
 out of computer-use territory, where a wrong action has real consequences.
 
 A cloud escape hatch for hard questions sits behind a `GuidanceProvider`

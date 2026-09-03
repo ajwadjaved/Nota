@@ -5,8 +5,8 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${HERE}/.venv"
-CA_BUNDLE="${VENV}/kuroko-ca.pem"
-MODEL="${KUROKO_MODEL:-mlx-community/Qwen3.8-27B-4bit}"
+CA_BUNDLE="${VENV}/nota-ca.pem"
+MODEL="${NOTA_MODEL:-mlx-community/Qwen3.8-27B-4bit}"
 
 say() { printf '\033[38;5;108m%s\033[0m\n' "$*"; }
 warn() { printf '\033[38;5;179m%s\033[0m\n' "$*"; }

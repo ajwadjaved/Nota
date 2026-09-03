@@ -30,8 +30,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     /// A bird rather than an eye. This app watches the screen all day, and an
-    /// unblinking eye in the menu bar reads as surveillance rather than help —
-    /// which is the opposite of a 黒子.
+    /// unblinking eye in the menu bar reads as surveillance rather than help,
+    /// which is the opposite of what it does.
     ///
     /// Kept as a template image so macOS owns the tint: white on a dark menu
     /// bar, black on a light one, dimmed while the app is inactive. A coloured
@@ -39,7 +39,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private static func icon() -> NSImage? {
         let image = NSImage(
             systemSymbolName: "bird.fill",
-            accessibilityDescription: "Kuroko"
+            accessibilityDescription: "Nota"
         )?
         .withSymbolConfiguration(
             NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
@@ -97,7 +97,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(item("Context Inspector...", action: #selector(showInspector)))
         menu.addItem(item("Settings...", action: #selector(openSettings), key: ","))
         menu.addItem(.separator())
-        menu.addItem(item("Quit Kuroko", action: #selector(quit), key: "q"))
+        menu.addItem(item("Quit Nota", action: #selector(quit), key: "q"))
     }
 
     private func item(
