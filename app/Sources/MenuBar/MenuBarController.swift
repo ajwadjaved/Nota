@@ -22,14 +22,31 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         super.init()
 
-        statusItem.button?.image = NSImage(
-            systemSymbolName: "eye.circle",
-            accessibilityDescription: "Kuroko"
-        )
+        statusItem.button?.image = Self.icon()
 
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
+    }
+
+    /// A bird rather than an eye. This app watches the screen all day, and an
+    /// unblinking eye in the menu bar reads as surveillance rather than help —
+    /// which is the opposite of a 黒子.
+    ///
+    /// Kept as a template image so macOS owns the tint: white on a dark menu
+    /// bar, black on a light one, dimmed while the app is inactive. A coloured
+    /// status item gets none of that, because it is never inverted.
+    private static func icon() -> NSImage? {
+        let image = NSImage(
+            systemSymbolName: "bird.fill",
+            accessibilityDescription: "Kuroko"
+        )?
+        .withSymbolConfiguration(
+            NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+        )
+
+        image?.isTemplate = true
+        return image
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
