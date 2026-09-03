@@ -5,13 +5,16 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let onToggleOverlay: () -> Void
     private let onRequestPermissions: () -> Void
+    private let onShowInspector: () -> Void
 
     init(
         onToggleOverlay: @escaping () -> Void,
-        onRequestPermissions: @escaping () -> Void
+        onRequestPermissions: @escaping () -> Void,
+        onShowInspector: @escaping () -> Void
     ) {
         self.onToggleOverlay = onToggleOverlay
         self.onRequestPermissions = onRequestPermissions
+        self.onShowInspector = onShowInspector
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         super.init()
@@ -61,6 +64,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         toggle.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(toggle)
 
+        menu.addItem(item("Context Inspector...", action: #selector(showInspector)))
         menu.addItem(item("Settings...", action: #selector(openSettings), key: ","))
         menu.addItem(.separator())
         menu.addItem(item("Quit Kuroko", action: #selector(quit), key: "q"))
@@ -94,6 +98,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func requestPermissions() {
         onRequestPermissions()
+    }
+
+    @objc private func showInspector() {
+        onShowInspector()
     }
 
     @objc private func quit() {

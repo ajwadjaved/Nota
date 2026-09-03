@@ -5,6 +5,8 @@ import Carbon.HIToolbox
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlay: OverlayController?
     private var menuBar: MenuBarController?
+    private var inspector: InspectorWindowController?
+    private let context = ContextCoordinator()
     private let hotkeys = HotkeyManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -13,10 +15,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let overlay = OverlayController()
         self.overlay = overlay
 
+        let inspector = InspectorWindowController(coordinator: context)
+        self.inspector = inspector
+
         menuBar = MenuBarController(
             onToggleOverlay: { overlay.toggle() },
-            onRequestPermissions: { Task { await PermissionsManager.shared.requestAll() } }
+            onRequestPermissions: { Task { await PermissionsManager.shared.requestAll() } },
+            onShowInspector: { inspector.show() }
         )
+
+        context.start()
 
         hotkeys.register(
             keyCode: UInt32(kVK_ANSI_K),
@@ -33,5 +41,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         hotkeys.unregister()
+        context.stop()
     }
 }
