@@ -1,0 +1,79 @@
+name: Kuroko
+
+options:
+  bundleIdPrefix: dev.kuroko
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+    ALWAYS_SEARCH_USER_PATHS: NO
+    CLANG_ENABLE_OBJC_ARC: YES
+
+    # Signing.
+    #
+    # Ad-hoc ("-") lets the app build with no Apple ID configured, but macOS keys
+    # Screen Recording and Accessibility grants to the code signature, so every
+    # rebuild changes the hash and the permissions get revoked.
+    #
+    # Once an Apple ID is added in Xcode > Settings > Accounts, replace the three
+    # lines below with:
+    #   CODE_SIGN_STYLE: Automatic
+    #   DEVELOPMENT_TEAM: <YOUR_TEAM_ID>
+    # and the grants will survive rebuilds.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: YES
+
+targets:
+  Kuroko:
+    type: application
+    platform: macOS
+
+    sources:
+      - path: app/Sources
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.kuroko.Kuroko
+        PRODUCT_NAME: Kuroko
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        COMBINE_HIDPI_IMAGES: YES
+
+    entitlements:
+      path: app/Kuroko.entitlements
+      properties:
+        # The Accessibility API and sending Apple events to arbitrary apps are
+        # both incompatible with the App Sandbox. This also rules out Mac App
+        # Store distribution, which is fine for a personal tool.
+        com.apple.security.app-sandbox: false
+        # Required to reach the microphone under the hardened runtime.
+        com.apple.security.device.audio-input: true
+        # Required to send Apple events (reading the active Excel cell) under
+        # the hardened runtime.
+        com.apple.security.automation.apple-events: true
+
+    info:
+      path: app/Info.plist
+      properties:
+        CFBundleName: Kuroko
+        CFBundleDisplayName: Kuroko
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "26.0"
+        # Menu-bar only: no Dock icon, no main window.
+        LSUIElement: true
+        NSMicrophoneUsageDescription: >-
+          Kuroko listens while you hold the hotkey so you can ask questions out loud.
+        NSSpeechRecognitionUsageDescription: >-
+          Kuroko transcribes your spoken questions on-device so it can answer them.
+        NSAppleEventsUsageDescription: >-
+          Kuroko reads what you are working on, such as the active Excel cell and
+          its formula, so its guidance matches what is actually on screen.
