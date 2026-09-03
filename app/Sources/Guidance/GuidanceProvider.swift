@@ -10,6 +10,80 @@ struct TriageVerdict: Equatable {
     var reason: String
 }
 
+/// What a model returned, before it is allowed onto the card.
+///
+/// Every provider produces one of these rather than a `Guidance` directly, so
+/// the rules about what may reach the screen live in exactly one place. They
+/// were expensive to learn and they apply regardless of which model answered.
+struct GuidanceDraft {
+    var title: String
+    var diagnosis: String
+    var steps: [String]
+}
+
+extension GuidanceDraft {
+    /// The card is 320 points wide and shows a handful of lines.
+    static let maximumSteps = 3
+
+    /// Prompts ask for under 80 characters and are routinely ignored, so this
+    /// is the limit that actually holds.
+    static let stepCharacterLimit = 110
+
+    /// Fragments that only appear once a model has stopped answering and
+    /// started reciting. Observed in the wild: a step containing
+    /// `var __webpack_require__ = ...`, which is training data, not advice.
+    private static let sludge = ["```", "__", "=>", "function(", "function ("]
+
+    static func isPlausibleStep(_ step: String) -> Bool {
+        guard !step.isEmpty, step.count <= stepCharacterLimit else { return false }
+        guard !sludge.contains(where: step.contains) else { return false }
+
+        // Semicolons and braces are punctuation in code and vanishingly rare in
+        // a one-line instruction, even one naming a formula.
+        return !step.contains(";") && !step.contains("{")
+    }
+
+    /// Returns `nil` when nothing survives, which is the model declining to be
+    /// specific. A card saying nothing is worse than no card.
+    func card(source: String) -> Guidance? {
+        let title = Self.clean(title).droppingTrailingPeriod
+        let surviving =
+            steps
+            .map(Self.clean)
+            .filter(Self.isPlausibleStep)
+            .prefix(Self.maximumSteps)
+
+        guard !title.isEmpty, !surviving.isEmpty else { return nil }
+
+        // The diagnosis leads as an already-established fact, which is what the
+        // filled checkmark means: this part is not for the reader to do, it is
+        // what Kuroko worked out.
+        let diagnosis = Self.clean(diagnosis)
+        let leading =
+            diagnosis.isEmpty
+            ? [] : [GuidanceStep(text: diagnosis, isDone: true)]
+
+        return Guidance(
+            title: title,
+            source: source,
+            steps: leading + surviving.map { GuidanceStep(text: $0) }
+        )
+    }
+
+    private static func clean(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+extension String {
+    /// Only a single trailing period. An ellipsis or a question mark is
+    /// meaningful punctuation and stays.
+    fileprivate var droppingTrailingPeriod: String {
+        guard hasSuffix("."), !hasSuffix("..") else { return self }
+        return String(dropLast())
+    }
+}
+
 /// A provider failure already phrased for the inspector. Raw framework errors
 /// describe themselves in terms of sessions and schemas, which says nothing
 /// about what to do next.

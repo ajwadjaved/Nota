@@ -118,6 +118,7 @@ Python owns inference because `mlx-vlm` and `mlx-audio` are far ahead of
   `appleIntelligenceNotEnabled` and the menu-bar item says so
 - Apple Silicon; 48 GB unified memory comfortably runs Qwen3.6-27B-4bit
 - Xcode 26, XcodeGen (`brew install xcodegen`)
+- For the sidecar: uv (`brew install uv`), and about 16 GB of disk for weights
 
 ## Install
 
@@ -219,6 +220,38 @@ output, an empty cell and a non-blocking warning all have to come back false,
 because interrupting someone who is working is worse than staying quiet. The
 Context Inspector shows each verdict with its reason and the exact text the
 model saw, which is where to look when a verdict seems wrong.
+
+## The sidecar
+
+```sh
+brew install uv
+sidecar/setup.sh
+```
+
+This builds `sidecar/.venv`, installs MLX, and prints how to fetch the weights.
+It is safe to re-run.
+
+Two environment problems are worth knowing about, because both present as
+something else entirely.
+
+**Python does not use the macOS keychain.** It ships its own CA list via
+`certifi`, so on a network that terminates TLS for inspection every HTTPS call
+from Python dies with `CERTIFICATE_VERIFY_FAILED: self-signed certificate in
+certificate chain` while `curl` and the browser work fine. `setup.sh` appends
+the machine's own trusted roots to certifi's bundle and writes
+`.venv/kuroko-ca.pem`; pass it as `SSL_CERT_FILE`. Disabling verification would
+also make the error go away and is the wrong trade.
+
+**The weights come from a different host than the API.** `huggingface.co`
+serves metadata and small files; the model shards come from `us.aws.cdn.hf.co`
+and `cas-server.xethub.hf.co`. A filtering proxy that allows the first and
+blocks the rest fails in a thoroughly misleading way: `hf download` reports
+`503 Service Unavailable` from the CDN, which reads like an outage at
+HuggingFace rather than a local policy, and the returned body is the proxy's own
+block page. `setup.sh` range-requests a shard and says so plainly instead.
+
+Once the weights are cached under `~/.cache/huggingface` the sidecar never needs
+the network again, so fetching them once on an unfiltered network is enough.
 
 ## Two constraints worth knowing early
 

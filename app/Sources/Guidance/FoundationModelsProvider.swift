@@ -27,8 +27,6 @@ struct FoundationModelsProvider: GuidanceProvider {
         maximumResponseTokens: 400
     )
 
-    private static let maximumSteps = 3
-
     var readiness: ProviderReadiness {
         switch SystemLanguageModel.default.availability {
         case .available:
@@ -176,52 +174,13 @@ struct FoundationModelsProvider: GuidanceProvider {
 
         // Guides are a hint, not a contract: `.count(1...3)` still came back
         // with four steps, and "no trailing period" came back with one. The
-        // card has a fixed width and one job, so both are enforced here.
-        let title = answer.title.trimmed.droppingTrailingPeriod
-        let steps =
-            answer.steps
-            .map(\.trimmed)
-            .filter(Self.isPlausibleStep)
-            .prefix(Self.maximumSteps)
-
-        // An empty title or no steps is the model declining to be specific,
-        // and a card saying nothing is worse than no card.
-        guard !title.isEmpty, !steps.isEmpty else { return nil }
-
-        // The diagnosis leads as an already-established fact, which is what the
-        // filled checkmark means: this part is not for you to do, it is what
-        // Kuroko worked out.
-        let diagnosis = answer.diagnosis.trimmed
-        let leading =
-            diagnosis.isEmpty
-            ? [] : [GuidanceStep(text: diagnosis, isDone: true)]
-
-        return Guidance(
-            title: title,
-            source: brief.source,
-            steps: leading + steps.map { GuidanceStep(text: $0) }
+        // draft is where that gets enforced.
+        return GuidanceDraft(
+            title: answer.title,
+            diagnosis: answer.diagnosis,
+            steps: answer.steps
         )
-    }
-
-    // MARK: - Sanity
-
-    /// Fragments that only appear when the model has stopped answering and
-    /// started reciting. The sampled retry path produced a step containing
-    /// `var __webpack_require__ = ...`, which is training data, not advice.
-    private static let sludge = ["```", "__", "=>", "function(", "function ("]
-
-    /// A step has to be short and prose-shaped. The guide asks for under 80
-    /// characters and is routinely ignored, so this is the actual limit; the
-    /// card is 320 points wide and cannot show more anyway.
-    private static let stepCharacterLimit = 110
-
-    private static func isPlausibleStep(_ step: String) -> Bool {
-        guard !step.isEmpty, step.count <= stepCharacterLimit else { return false }
-        guard !sludge.contains(where: step.contains) else { return false }
-
-        // Semicolons and braces are punctuation in code and vanishingly rare in
-        // a one-line instruction, even one naming a formula.
-        return !step.contains(";") && !step.contains("{")
+        .card(source: brief.source)
     }
 
     // MARK: - Generation
@@ -314,15 +273,3 @@ struct FoundationModelsProvider: GuidanceProvider {
     }
 }
 
-extension String {
-    fileprivate var trimmed: String {
-        trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    /// Only a single trailing period. An ellipsis or a question mark is
-    /// meaningful punctuation and stays.
-    fileprivate var droppingTrailingPeriod: String {
-        guard hasSuffix("."), !hasSuffix("..") else { return self }
-        return String(dropLast())
-    }
-}

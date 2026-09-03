@@ -1,0 +1,7 @@
+# Tier 3 runs a local model for the apps where Tier 1 only gets pixels, and for
+# writing guidance that the on-device system model is not reliable enough for.
+#
+# mlx-lm covers text. Vision needs mlx-vlm as well, which is deliberately not
+# here yet: the model chosen for Tier 3 is multimodal, but nothing feeds it a
+# screenshot until the OCR path exists.
+mlx-lm==0.31.3
