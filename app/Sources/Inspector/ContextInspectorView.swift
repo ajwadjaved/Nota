@@ -62,6 +62,9 @@ struct ContextInspectorView: View {
             if let guidance = engine.guidanceDuration {
                 field("Guidance", String(format: "%.0f ms", guidance * 1000))
             }
+            if let writer = engine.lastGuidance?.writer {
+                field("Written by", writer)
+            }
         }
     }
 

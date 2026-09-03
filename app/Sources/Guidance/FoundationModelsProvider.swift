@@ -180,7 +180,7 @@ struct FoundationModelsProvider: GuidanceProvider {
             diagnosis: answer.diagnosis,
             steps: answer.steps
         )
-        .card(source: brief.source)
+        .card(source: brief.source, writer: name)
     }
 
     // MARK: - Generation

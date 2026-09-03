@@ -45,7 +45,7 @@ extension GuidanceDraft {
 
     /// Returns `nil` when nothing survives, which is the model declining to be
     /// specific. A card saying nothing is worse than no card.
-    func card(source: String) -> Guidance? {
+    func card(source: String, writer: String) -> Guidance? {
         let title = Self.clean(title).droppingTrailingPeriod
         let surviving =
             steps
@@ -66,7 +66,8 @@ extension GuidanceDraft {
         return Guidance(
             title: title,
             source: source,
-            steps: leading + surviving.map { GuidanceStep(text: $0) }
+            steps: leading + surviving.map { GuidanceStep(text: $0) },
+            writer: writer
         )
     }
 
@@ -99,25 +100,32 @@ enum ProviderReadiness: Equatable {
     var isReady: Bool { self == .ready }
 }
 
-/// The seam between the pipeline and whatever writes the actual advice.
+/// Something that can write advice, given a screen worth writing about.
 ///
-/// Two methods rather than one because they sit at different points on the cost
-/// curve. `triage` runs on every settled screen event and has to be nearly
-/// free; `guidance` only runs after triage says yes. A hosted model would
-/// implement the same pair, and the engine above would not change.
-protocol GuidanceProvider: Sendable {
+/// Separate from `GuidanceProvider` because the tiers are not symmetrical. The
+/// sidecar writes but has no business triaging: triage runs on every settled
+/// screen event, and waking a 27B model that often would undo the entire point
+/// of the ladder.
+protocol GuidanceWriter: Sendable {
     /// Shown in the inspector so it is obvious which tier answered.
     var name: String { get }
 
+    /// Returns `nil` if the model reconsidered once it had to be specific,
+    /// which happens often enough to be worth modelling as a real outcome
+    /// rather than an error.
+    func guidance(for brief: ContextBrief) async throws -> Guidance?
+}
+
+/// The seam between the pipeline and the models. A hosted model would implement
+/// this same pair, and the engine above it would not change.
+///
+/// `triage` runs on every settled screen event and has to be nearly free;
+/// `guidance` only runs after triage says yes.
+protocol GuidanceProvider: GuidanceWriter {
     var readiness: ProviderReadiness { get }
 
     /// Called for every settled context change. Must be cheap.
     func triage(_ brief: ContextBrief) async throws -> TriageVerdict
-
-    /// Called only when `triage` returned `needsHelp`. Returns `nil` if the
-    /// model reconsidered once it had to be specific, which happens often
-    /// enough to be worth modelling as a real outcome rather than an error.
-    func guidance(for brief: ContextBrief) async throws -> Guidance?
 
     /// Optional hook to pay model start-up cost before the first real request.
     func prewarm()

@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.overlay = overlay
 
         let engine = GuidanceEngine(
+            provider: TieredGuidanceProvider(),
             present: { overlay.show(guidance: $0) },
             dismiss: { overlay.clear() }
         )

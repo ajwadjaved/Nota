@@ -82,10 +82,14 @@ xcodebuild -project Kuroko.xcodeproj -scheme KurokoProbe build
   -showBuildSettings | awk -F' = ' '/ BUILT_PRODUCTS_DIR /{print $2; exit}')/kuroko-probe"
 ```
 
-It runs the real `ContextBrief` and `FoundationModelsProvider` against the
-fixtures in `probe/Fixtures.swift` and exits non-zero when a verdict disagrees
-with its expectation. It shares the sources it exercises rather than copying
-them, so a prompt cannot drift away from its test.
+It runs the real `ContextBrief` and provider code against the fixtures in
+`probe/Fixtures.swift` and exits non-zero when a verdict disagrees with its
+expectation. It shares the sources it exercises rather than copying them, so a
+prompt cannot drift away from its test.
+
+Pass `--tiered` to send the writing to the sidecar, which is the shipping
+configuration; without it everything runs on the system model, so the two are
+comparable over identical fixtures.
 
 Most fixtures are negative cases, because the silence bias is what an innocuous
 prompt edit breaks first. The fixtures that expect no brief at all need no
@@ -225,11 +229,37 @@ model saw, which is where to look when a verdict seems wrong.
 
 ```sh
 brew install uv
-sidecar/setup.sh
+sidecar/setup.sh          # virtualenv, MLX, CA bundle, reachability check
+sidecar/run.sh            # start it
+sidecar/run.sh --stub     # start it with no weights
+sidecar/.venv/bin/python sidecar/test_prompt.py
 ```
 
-This builds `sidecar/.venv`, installs MLX, and prints how to fetch the weights.
-It is safe to re-run.
+`setup.sh` is safe to re-run.
+
+Tier 2 triages and Tier 3 writes, which follows what each is actually good at.
+`TieredGuidanceProvider` composes them, and Tier 3 is optional: the sidecar
+holds gigabytes of weights in a separate process and will often not be running,
+in which case Tier 2 writes the card as before. That is worse advice, not no
+advice, and the inspector's "Written by" row says which one answered.
+
+It is an HTTP server on loopback rather than a subprocess the app spawns, for
+two reasons. Loading a 27B model takes tens of seconds and Kuroko is a login
+item that gets quit and relaunched, so tying the weights to the app's lifetime
+would pay that cost every time. And a crash inside MLX cannot take the menu-bar
+app down with it. It binds `127.0.0.1` only: this process receives the contents
+of the screen and must never be reachable from the network.
+
+`--stub` answers from the screen text without a model, deriving its reply from
+the brief it was given rather than returning a constant, so a wiring bug that
+drops the brief still shows up as a wrong answer. That is what makes the whole
+path testable before any weights exist.
+
+The parsing is the part worth testing, and `test_prompt.py` covers it without a
+model. A local model wraps its JSON in a fence, in prose, or in a `<think>`
+block, inconsistently, and formulas and shell snippets put braces inside string
+values — which is why `_first_json_object` counts depth rather than matching a
+regex.
 
 Two environment problems are worth knowing about, because both present as
 something else entirely.

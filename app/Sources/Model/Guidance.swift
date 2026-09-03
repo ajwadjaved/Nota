@@ -21,10 +21,22 @@ struct Guidance: Identifiable, Hashable {
     var source: String?
     var steps: [GuidanceStep]
 
-    init(id: UUID = UUID(), title: String, source: String? = nil, steps: [GuidanceStep]) {
+    /// Which model wrote this. Never shown on the card, but two tiers can now
+    /// produce one and telling their output apart by eye is exactly the thing
+    /// the inspector exists to avoid.
+    var writer: String?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        source: String? = nil,
+        steps: [GuidanceStep],
+        writer: String? = nil
+    ) {
         self.id = id
         self.title = title
         self.source = source
         self.steps = steps
+        self.writer = writer
     }
 }

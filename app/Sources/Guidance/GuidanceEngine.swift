@@ -47,6 +47,11 @@ final class GuidanceEngine {
     private(set) var guidanceDuration: TimeInterval?
     private(set) var lastBrief: ContextBrief?
 
+    /// Kept so the inspector can name the tier that wrote the card on screen.
+    /// Two models can produce one now, and their output is not always
+    /// distinguishable by eye.
+    private(set) var lastGuidance: Guidance?
+
     let providerName: String
 
     private let provider: any GuidanceProvider
@@ -68,7 +73,7 @@ final class GuidanceEngine {
     private var guidanceBundleID: String?
 
     init(
-        provider: any GuidanceProvider = FoundationModelsProvider(),
+        provider: any GuidanceProvider = TieredGuidanceProvider(),
         present: @escaping (Guidance) -> Void,
         dismiss: @escaping () -> Void
     ) {
@@ -165,6 +170,7 @@ final class GuidanceEngine {
             }
 
             guidanceBundleID = currentBundleID
+            lastGuidance = guidance
             present(guidance)
             phase = .showing
         } catch {

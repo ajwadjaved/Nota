@@ -8,7 +8,19 @@ import Foundation
 // thing an innocuous prompt edit breaks. A non-zero exit means the suite
 // disagrees with the prompts.
 
-let provider = FoundationModelsProvider()
+// `--tiered` sends the writing to the sidecar and keeps triage on Tier 2, which
+// is the shipping configuration. Without it the suite runs entirely on the
+// system model, so the two can be compared over identical fixtures.
+let useTiered = CommandLine.arguments.contains("--tiered")
+let provider: any GuidanceProvider =
+    useTiered ? TieredGuidanceProvider() : FoundationModelsProvider()
+
+print("provider: \(provider.name)")
+
+if useTiered, await !TieredGuidanceProvider().writerIsReachable() {
+    print("warning: the sidecar is not answering, so Tier 2 will write instead")
+}
+print()
 
 enum Outcome {
     case noBrief
@@ -63,7 +75,8 @@ func report(_ fixture: Fixture, _ outcome: Outcome) {
     case .quiet(let reason, let triage):
         print("      quiet after \(triage.milliseconds) ms: \(reason)")
     case .guidance(let guidance, let triage, let write):
-        print("      \(triage.milliseconds) ms triage, \(write.milliseconds) ms write")
+        let writer = guidance.writer ?? "unknown"
+        print("      \(triage.milliseconds) ms triage, \(write.milliseconds) ms write via \(writer)")
         print("      \(guidance.title)")
         for step in guidance.steps {
             print("        [\(step.isDone ? "x" : " ")] \(step.text)")
