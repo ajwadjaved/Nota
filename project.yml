@@ -18,17 +18,17 @@ settings:
 
     # Signing.
     #
-    # Ad-hoc ("-") lets the app build with no Apple ID configured, but macOS keys
-    # Screen Recording and Accessibility grants to the code signature, so every
-    # rebuild changes the hash and the permissions get revoked.
+    # macOS keys Screen Recording and Accessibility grants to the code
+    # signature, so an ad-hoc signature means every rebuild revokes both. A real
+    # Apple Development certificate keeps the signature stable across builds and
+    # the grants stick.
     #
-    # Once an Apple ID is added in Xcode > Settings > Accounts, replace the three
-    # lines below with:
-    #   CODE_SIGN_STYLE: Automatic
-    #   DEVELOPMENT_TEAM: <YOUR_TEAM_ID>
-    # and the grants will survive rebuilds.
+    # Manual rather than Automatic on purpose: a macOS app signed for local
+    # development needs no provisioning profile as long as its entitlements
+    # don't require one, and ours don't. That avoids the whole profile dance.
     CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_IDENTITY: "Apple Development"
+    DEVELOPMENT_TEAM: 37UP8RWLHU
     CODE_SIGNING_REQUIRED: YES
 
 targets:

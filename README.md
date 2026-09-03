@@ -61,20 +61,55 @@ open build/Build/Products/Debug/Kuroko.app
 ## Signing, and why it matters here
 
 macOS keys Screen Recording and Accessibility grants to an app's code
-signature. Under the ad-hoc signing that `project.yml` currently uses, every
-rebuild changes that signature and macOS silently revokes both grants — you
-re-approve after every build.
+signature. Under an ad-hoc signature every rebuild changes that signature and
+macOS silently revokes both grants, so you re-approve after every single build.
 
-To fix it, add an Apple ID in Xcode > Settings > Accounts (a free one is
-enough for local development), then replace the signing block in `project.yml`
-with:
+An Apple Development certificate fixes this. The designated requirement then
+binds to the bundle ID and the certificate rather than a binary hash:
 
-```yaml
-CODE_SIGN_STYLE: Automatic
-DEVELOPMENT_TEAM: <YOUR_TEAM_ID>
+```
+identifier "dev.kuroko.Kuroko" and anchor apple generic and
+certificate leaf[subject.CN] = "Apple Development: ..."
 ```
 
-Find the team ID with `security find-identity -v -p codesigning`.
+Rebuilds keep satisfying that, so the grants persist. A free Apple ID is
+enough; the paid Developer Program is not needed. Add it in Xcode > Settings >
+Accounts, then Manage Certificates > + > Apple Development. Set
+`DEVELOPMENT_TEAM` in `project.yml` to the `OU` field of the certificate
+subject.
+
+Signing is Manual rather than Automatic on purpose. A macOS app signed for
+local development needs no provisioning profile as long as its entitlements
+don't require one, and ours don't, which avoids the profile dance entirely.
+
+### If `find-identity` reports zero valid identities
+
+A certificate can exist and still be invalid because its **intermediate** is
+missing or expired. Check what is actually wrong:
+
+```sh
+security find-identity -p codesigning     # lists it even when invalid
+security find-certificate -c "Apple Worldwide Developer Relations Certification Authority" \
+  -p | openssl x509 -noout -subject -dates
+```
+
+Current certificates are issued by WWDR **G3**. The original WWDR intermediate
+expired in February 2023, and if that is the only one in the keychain the chain
+cannot be built. Install the current one:
+
+```sh
+curl -fsSLO https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer
+security add-certificates -k ~/Library/Keychains/login.keychain-db AppleWWDRCAG3.cer
+```
+
+After changing how the app is signed, clear the grants tied to the old
+signature so the prompts come back cleanly:
+
+```sh
+for s in Accessibility ScreenCapture Microphone AppleEvents; do
+  tccutil reset $s dev.kuroko.Kuroko
+done
+```
 
 ## Two constraints worth knowing early
 
