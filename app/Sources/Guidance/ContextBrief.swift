@@ -50,7 +50,16 @@ struct ContextBrief: Equatable {
 
     /// Everything the model is shown, so two briefs that would produce the same
     /// answer compare equal. Deliberately excludes timestamps and read duration.
-    var fingerprint: String { "\(kind.rawValue)|\(source)|\(text)" }
+    ///
+    /// `source` is excluded because it carries the window title, and a title is
+    /// not a description of the screen: terminals animate a spinner into it,
+    /// and apps put clocks and unsaved-changes markers there. Including it made
+    /// every poll tick look like a new event, which re-armed the settle timer
+    /// before triage could ever finish, so nothing was shown at all.
+    ///
+    /// Nothing is lost by dropping it. The workbook and sheet are already in a
+    /// spreadsheet's text, and a terminal's own prompt carries its directory.
+    var fingerprint: String { "\(kind.rawValue)|\(appName)|\(text)" }
 
     static func == (lhs: ContextBrief, rhs: ContextBrief) -> Bool {
         lhs.fingerprint == rhs.fingerprint
