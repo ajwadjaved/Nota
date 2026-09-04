@@ -1,5 +1,8 @@
 import AppKit
 import Carbon.HIToolbox
+import os
+
+private let log = Logger(subsystem: "dev.nota.Nota", category: "lifecycle")
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -43,7 +46,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             overlay.toggle()
         }
 
-        PermissionsManager.shared.refresh()
+        let permissions = PermissionsManager.shared
+        permissions.refresh()
+
+        // Re-signing the app invalidates its TCC grants, so a build that was
+        // working yesterday can come up mute today. Without Accessibility the
+        // readers return nothing and the overlay just sits on its placeholder,
+        // which looks identical to a screen with no problem on it.
+        log.notice(
+            """
+            permissions: screen recording \(permissions.hasScreenRecording, privacy: .public), \
+            accessibility \(permissions.hasAccessibility, privacy: .public), \
+            microphone \(permissions.hasMicrophone, privacy: .public)
+            """
+        )
+
+        // Tier 3 absence is silent by design; say so once at launch so a
+        // degraded run is visible without reading the cards and guessing.
+        let provider = TieredGuidanceProvider()
+        Task {
+            let reachable = await provider.writerIsReachable()
+            log.notice("sidecar reachable: \(reachable, privacy: .public)")
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
