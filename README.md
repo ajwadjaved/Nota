@@ -176,7 +176,7 @@ Python owns inference because `mlx-vlm` and `mlx-audio` are far ahead of
 - Apple Intelligence switched on in System Settings. Being on an eligible Mac is
   not enough; until it is enabled `SystemLanguageModel.availability` reports
   `appleIntelligenceNotEnabled` and the menu-bar item says so
-- Apple Silicon; 48 GB unified memory comfortably runs Qwen3.6-27B-4bit
+- Apple Silicon; 48 GB unified memory comfortably runs Qwen3.8-27B-4bit
 - Xcode 26, XcodeGen (`brew install xcodegen`)
 - For the sidecar: uv (`brew install uv`), and about 16 GB of disk for weights
 
