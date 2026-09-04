@@ -58,6 +58,49 @@ Reply with a single JSON object and nothing else, with exactly these keys:
 """
 
 
+# Mirrors `briefingInstructions` in FoundationModelsProvider.swift, and is
+# duplicated for the same reason the guidance prompt is: the two run in
+# different languages but state one product decision, and changing one without
+# the other is a bug.
+#
+# Not SYSTEM with the word "stuck" removed. That prompt's frame is that a
+# failure exists and must be repaired, and a model held to it on a healthy
+# screen manufactures a problem to solve.
+SYSTEM_BRIEFING = """\
+You describe what someone at their Mac is working on, in a small overlay card \
+they asked for and are reading right now.
+
+Everything you write must be grounded in the screen text you are given. Name \
+the actual cell, file, flag or command from that text. If the text does not \
+tell you something, do not supply it from memory, and do not guess at what \
+they intend beyond what is written.
+
+Nothing is necessarily wrong. If the work is proceeding normally, say so \
+plainly; do not invent a problem, a risk or a correction to justify the card. \
+Only call something an error if the screen text shows it failing.
+
+The todo is what the screen text shows is not finished yet: a command still \
+running, a cell still empty, a step named in the output that has not happened. \
+If everything visible is complete, say that in one item rather than padding \
+the list.
+
+Describe the work, never the mechanism. Never write a keyboard shortcut, a \
+menu path, a button name, or an instruction to open or switch to an \
+application. Never explain what you are doing and never greet them.
+
+You do not control the machine, so never claim to have done anything.
+
+Reply with a single JSON object and nothing else, with exactly these keys:
+  "title":   what they are working on, one short phrase, at most 60
+             characters, naming something that appears in the screen text,
+             with no trailing period
+  "summary": the state of the work right now, one sentence under 90
+             characters, saying what has happened rather than what to do
+  "todo":    an array of one to five strings, each an imperative line under 80
+             characters naming something that appears in the screen text\
+"""
+
+
 def build_prompt(brief: dict[str, Any]) -> str:
     """Render a brief the way the Swift side renders it for Tier 2.
 
@@ -125,6 +168,13 @@ class ParseError(ValueError):
     """The model produced something that is not a usable draft."""
 
 
+def _first_present(parsed: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if parsed.get(key) is not None:
+            return parsed[key]
+    return None
+
+
 def parse_draft(raw: str) -> dict[str, Any]:
     """Pull a draft out of whatever the model actually emitted.
 
@@ -147,9 +197,13 @@ def parse_draft(raw: str) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ParseError("model returned JSON that is not an object")
 
+    # The two prompts name these fields differently on purpose: asking for a
+    # "diagnosis" of a working screen is what produces an invented fault. Both
+    # spellings are accepted here so the caller sees one shape, and so a model
+    # that reaches for the other word is not thrown away over vocabulary.
     title = parsed.get("title")
-    diagnosis = parsed.get("diagnosis")
-    steps = parsed.get("steps")
+    diagnosis = _first_present(parsed, "diagnosis", "summary")
+    steps = _first_present(parsed, "steps", "todo")
 
     if not isinstance(title, str) or not title.strip():
         raise ParseError("missing title")

@@ -281,6 +281,26 @@ because interrupting someone who is working is worse than staying quiet. The
 Context Inspector shows each verdict with its reason and the exact text the
 model saw, which is where to look when a verdict seems wrong.
 
+## Asking it directly
+
+Cmd-Opt-J, or "Read This Screen" in the menu, describes whatever is in front of
+you and lists what the screen shows is still outstanding. It works on a screen
+with nothing wrong on it, which the ambient path will not do.
+
+Both gates that keep the ambient path quiet are lifted for it, because both
+exist to justify an *interruption* and a pressed key is not one. Triage is
+skipped, and Excel stops requiring the active cell to hold an error value.
+
+It is a separate prompt rather than the guidance prompt with the word "stuck"
+removed. That prompt's whole frame is that a failure exists and must be
+repaired; held to it on a healthy screen, the model manufactures a problem to
+solve. `probe --briefing` runs this path over the same fixtures and asserts the
+mirror image of the ambient suite: every readable screen must produce a card,
+and the healthy Excel cases must be described without inventing a fault.
+
+The answer takes about five seconds, so the card shows what it is doing while
+it works. A direct request that produces nothing visible reads as broken.
+
 ## The sidecar
 
 ```sh

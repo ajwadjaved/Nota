@@ -6,6 +6,10 @@ import SwiftUI
 @Observable
 final class OverlayModel {
     var guidance: Guidance?
+
+    /// Shown in the card's place while there is no card: what the hotkey is
+    /// doing, or why it produced nothing.
+    var status: String?
 }
 
 @MainActor
@@ -27,9 +31,21 @@ final class OverlayController {
     }
 
     func show(guidance: Guidance) {
+        model.status = nil
         model.guidance = guidance
         reposition()
         // Not `makeKeyAndOrderFront`: that would activate Nota and steal focus.
+        panel.orderFrontRegardless()
+        isVisible = true
+    }
+
+    /// Replaces the card with a line of text. The previous card goes with it:
+    /// once the user has asked about this screen, advice about the last one is
+    /// no longer an answer to anything.
+    func show(status: String) {
+        model.guidance = nil
+        model.status = status
+        reposition()
         panel.orderFrontRegardless()
         isVisible = true
     }
@@ -43,6 +59,7 @@ final class OverlayController {
     /// back advice about a cell in a workbook the user has since left.
     func clear() {
         model.guidance = nil
+        model.status = nil
         hide()
     }
 

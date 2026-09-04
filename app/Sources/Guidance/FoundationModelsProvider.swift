@@ -183,6 +183,92 @@ struct FoundationModelsProvider: GuidanceProvider {
         .card(source: brief.source, writer: name)
     }
 
+    // MARK: - Briefing
+
+    private static let briefingOptions = GenerationOptions(
+        sampling: .greedy,
+        maximumResponseTokens: 500
+    )
+
+    @Generable
+    fileprivate struct BriefingAnswer {
+        @Guide(description: """
+            What the person is working on, as one short phrase of at most 60 \
+            characters, naming a file, command, workbook or cell that appears \
+            in the screen text. No trailing period.
+            """)
+        var title: String
+
+        @Guide(description: """
+            The state of the work right now, in one sentence under 90 \
+            characters. Say what has happened, not what to do about it.
+            """)
+        var summary: String
+
+        @Guide(
+            description: """
+                What is still outstanding, as a todo list. Each item is one \
+                imperative line under 80 characters naming something that \
+                appears in the screen text. Include only work the screen text \
+                shows is unfinished. Not a procedure, not a click, not a \
+                keystroke.
+                """,
+            .count(1...5)
+        )
+        var todo: [String]
+    }
+
+    /// Deliberately not `guidanceInstructions` with the word "stuck" swapped
+    /// out. That prompt's entire frame is that a failure exists and must be
+    /// repaired, and a model held to it on a healthy screen manufactures a
+    /// problem to solve. This one has to be allowed to say the work is fine.
+    private static let briefingInstructions = """
+        You describe what someone at their Mac is working on, in a small \
+        overlay card they asked for and are reading right now.
+
+        Everything you write must be grounded in the screen text you are given. \
+        Name the actual cell, file, flag or command from that text. If the text \
+        does not tell you something, do not supply it from memory, and do not \
+        guess at what they intend beyond what is written.
+
+        Nothing is necessarily wrong. If the work is proceeding normally, say \
+        so plainly; do not invent a problem, a risk or a correction to justify \
+        the card. Only call something an error if the screen text shows it \
+        failing.
+
+        The todo is what the screen text shows is not finished yet: a command \
+        still running, a cell still empty, a step named in the output that has \
+        not happened. If everything visible is complete, say that in one item \
+        rather than padding the list.
+
+        Describe the work, never the mechanism. Never write a keyboard \
+        shortcut, a menu path, a button name, or an instruction to open or \
+        switch to an application. Never explain what you are doing and never \
+        greet them.
+
+        You do not control the machine, so never claim to have done anything.
+        """
+
+    func briefing(for brief: ContextBrief) async throws -> Guidance? {
+        let answer = try await Self.generate(
+            BriefingAnswer.self,
+            instructions: Self.briefingInstructions,
+            prompt: Self.prompt(for: brief),
+            options: Self.briefingOptions
+        )
+
+        return GuidanceDraft(
+            title: answer.title,
+            diagnosis: answer.summary,
+            steps: answer.todo
+        )
+        .card(
+            source: brief.source,
+            writer: name,
+            maximumSteps: GuidanceDraft.maximumBriefingSteps
+        )
+    }
+
     // MARK: - Generation
 
     /// One request, with a single retry if the model produces something that

@@ -5,17 +5,20 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let engine: GuidanceEngine
     private let onToggleOverlay: () -> Void
+    private let onReadScreen: () -> Void
     private let onRequestPermissions: () -> Void
     private let onShowInspector: () -> Void
 
     init(
         engine: GuidanceEngine,
         onToggleOverlay: @escaping () -> Void,
+        onReadScreen: @escaping () -> Void,
         onRequestPermissions: @escaping () -> Void,
         onShowInspector: @escaping () -> Void
     ) {
         self.engine = engine
         self.onToggleOverlay = onToggleOverlay
+        self.onReadScreen = onReadScreen
         self.onRequestPermissions = onRequestPermissions
         self.onShowInspector = onShowInspector
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -90,6 +93,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+        let read = item("Read This Screen", action: #selector(readScreen), key: "j")
+        read.keyEquivalentModifierMask = [.command, .option]
+        menu.addItem(read)
+
         let toggle = item("Toggle Overlay", action: #selector(toggleOverlay), key: "k")
         toggle.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(toggle)
@@ -124,6 +131,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func toggleOverlay() {
         onToggleOverlay()
+    }
+
+    @objc private func readScreen() {
+        onReadScreen()
     }
 
     @objc private func requestPermissions() {

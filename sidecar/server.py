@@ -31,6 +31,11 @@ PORT = int(os.environ.get("NOTA_SIDECAR_PORT", "8765"))
 MODEL = os.environ.get("NOTA_MODEL", "mlx-community/Qwen3.8-27B-4bit")
 MAX_TOKENS = int(os.environ.get("NOTA_MAX_TOKENS", "300"))
 
+# A briefing carries up to five todo items where guidance carries three, and a
+# budget that truncates the JSON mid-string costs the whole answer, not the
+# last item.
+BRIEFING_MAX_TOKENS = int(os.environ.get("NOTA_BRIEFING_MAX_TOKENS", "500"))
+
 # The screen text is already capped on the Swift side; this is a second bound
 # so a bug there cannot hand the model an unbounded prompt.
 MAX_TEXT_CHARS = 8_000
@@ -63,9 +68,17 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self) -> None:
-        if self.path != "/guidance":
+        # Same wire format either way; the path picks the question.
+        route = {
+            "/guidance": (prompt_module.SYSTEM, MAX_TOKENS),
+            "/briefing": (prompt_module.SYSTEM_BRIEFING, BRIEFING_MAX_TOKENS),
+        }.get(self.path)
+
+        if route is None:
             self._send(404, {"error": "not found"})
             return
+
+        system, max_tokens = route
 
         try:
             brief = self._read_json()
@@ -83,9 +96,9 @@ class Handler(BaseHTTPRequestHandler):
         started = time.monotonic()
         try:
             raw = BACKEND.complete(
-                prompt_module.SYSTEM,
+                system,
                 prompt_module.build_prompt(brief),
-                MAX_TOKENS,
+                max_tokens,
             )
         except Exception as error:  # noqa: BLE001 - surfaced to the client
             self._send(500, {"error": f"generation failed: {error}"})

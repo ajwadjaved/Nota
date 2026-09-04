@@ -53,7 +53,30 @@ struct SidecarWriter: GuidanceWriter {
     // MARK: - Writing
 
     func guidance(for brief: ContextBrief) async throws -> Guidance? {
-        var request = URLRequest(url: baseURL.appendingPathComponent("guidance"))
+        try await card(
+            from: "guidance",
+            for: brief,
+            maximumSteps: GuidanceDraft.maximumSteps
+        )
+    }
+
+    func briefing(for brief: ContextBrief) async throws -> Guidance? {
+        try await card(
+            from: "briefing",
+            for: brief,
+            maximumSteps: GuidanceDraft.maximumBriefingSteps
+        )
+    }
+
+    /// Both endpoints speak the same wire format and differ only in the system
+    /// prompt the sidecar pairs with it, so the transport is shared and the
+    /// question is a path.
+    private func card(
+        from path: String,
+        for brief: ContextBrief,
+        maximumSteps: Int
+    ) async throws -> Guidance? {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(
@@ -93,7 +116,7 @@ struct SidecarWriter: GuidanceWriter {
             diagnosis: decoded.diagnosis ?? "",
             steps: decoded.steps
         )
-        .card(source: brief.source, writer: name)
+        .card(source: brief.source, writer: name, maximumSteps: maximumSteps)
     }
 
     private static func describe(status: Int, body: Data) -> String {

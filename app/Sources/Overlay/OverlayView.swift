@@ -13,9 +13,10 @@ struct OverlayView: View {
                     row(for: step)
                 }
             } else {
-                Text("Nota is watching")
+                Text(model.status ?? "Nota is watching")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(14)

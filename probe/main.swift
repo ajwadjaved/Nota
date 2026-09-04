@@ -11,7 +11,10 @@ import Foundation
 // `--tiered` sends the writing to the sidecar and keeps triage on Tier 2, which
 // is the shipping configuration. Without it the suite runs entirely on the
 // system model, so the two can be compared over identical fixtures.
+// `--briefing` exercises the hotkey path rather than the ambient one. See the
+// block further down for what it asserts.
 let useTiered = CommandLine.arguments.contains("--tiered")
+let useBriefing = CommandLine.arguments.contains("--briefing")
 let provider: any GuidanceProvider =
     useTiered ? TieredGuidanceProvider() : FoundationModelsProvider()
 
@@ -105,6 +108,59 @@ if !modelReady {
         print("Model unavailable: \(reason)")
     }
     print("Running only the fixtures that need no model.\n")
+}
+
+// The hotkey path: every screen with readable text on it, whether or not
+// anything is wrong, and no triage in the way.
+//
+// The assertion is the mirror image of the ambient suite's. There, a card on a
+// healthy screen is the failure. Here, a readable screen that produces no card
+// is: the user pressed a key and is owed an answer. Watch the healthy Excel
+// fixtures in particular, since describing `=SUM(B1:B3)` without inventing a
+// fault for it is exactly what the separate briefing prompt exists to do.
+if useBriefing {
+    guard modelReady else {
+        print("Model unavailable, so there is nothing to brief.")
+        exit(1)
+    }
+
+    var briefingFailures = 0
+
+    for fixture in Fixtures.all {
+        guard let brief = ContextBrief.make(from: fixture.context, appetite: .anything)
+        else {
+            print("SKIP  \(fixture.name)")
+            print("      no readable text, so the hotkey would say so")
+            continue
+        }
+
+        do {
+            let started = ContinuousClock.now
+            let card = try await provider.briefing(for: brief)
+            let elapsed = ContinuousClock.now - started
+
+            guard let card else {
+                print("FAIL  \(fixture.name)")
+                print("      readable screen produced no card")
+                briefingFailures += 1
+                continue
+            }
+
+            print("PASS  \(fixture.name)")
+            print("      \(elapsed.milliseconds) ms via \(card.writer ?? "unknown")")
+            print("      \(card.title)")
+            for step in card.steps {
+                print("        [\(step.isDone ? "x" : " ")] \(step.text)")
+            }
+        } catch {
+            print("FAIL  \(fixture.name)")
+            print("      error: \(error.localizedDescription)")
+            briefingFailures += 1
+        }
+    }
+
+    print("\n\(briefingFailures) failed")
+    exit(briefingFailures == 0 ? 0 : 1)
 }
 
 var failures = 0

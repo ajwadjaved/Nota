@@ -38,6 +38,17 @@ struct TieredGuidanceProvider: GuidanceProvider {
         try await triager.triage(brief)
     }
 
+    func briefing(for brief: ContextBrief) async throws -> Guidance? {
+        do {
+            return try await writer.briefing(for: brief)
+        } catch is SidecarUnavailable {
+            return try await triager.briefing(for: brief)
+        } catch {
+            NSLog("Nota: sidecar briefing failed, falling back to Tier 2: %@", error.localizedDescription)
+            return try await triager.briefing(for: brief)
+        }
+    }
+
     func guidance(for brief: ContextBrief) async throws -> Guidance? {
         do {
             return try await writer.guidance(for: brief)

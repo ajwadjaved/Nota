@@ -28,6 +28,8 @@ final class GuidanceEngine {
         case waiting
         case triaging
         case generating
+        /// The hotkey path, which skips triage.
+        case briefing
         /// Triage ran and said no. Carries its reason.
         case quiet(String)
         case showing
@@ -41,6 +43,7 @@ final class GuidanceEngine {
             case .waiting: "Waiting for the screen to settle"
             case .triaging: "Triaging"
             case .generating: "Writing guidance"
+            case .briefing: "Reading the screen"
             case .quiet: "Quiet"
             case .showing: "Showing guidance"
             case .failed: "Failed"
@@ -65,6 +68,10 @@ final class GuidanceEngine {
     private let provider: any GuidanceProvider
     private let present: (Guidance) -> Void
     private let dismiss: () -> Void
+    /// Says something in the card's place. The hotkey is a direct request, and
+    /// a direct request that produces nothing visible for five seconds is
+    /// indistinguishable from a broken one.
+    private let report: (String) -> Void
 
     /// How long the screen has to hold still before a model runs. Long enough
     /// that typing a command does not trigger a verdict on every keystroke,
@@ -76,6 +83,12 @@ final class GuidanceEngine {
     private var pending: ContextBrief?
     private var work: Task<Void, Never>?
 
+    /// Separate from `work` so the ambient pass cannot cancel a briefing. The
+    /// readers poll every 1.5 seconds and a briefing takes several, so sharing
+    /// one handle meant any screen that changed while the model was writing
+    /// silently threw the answer away.
+    private var briefingWork: Task<Void, Never>?
+
     /// Which app the guidance on screen belongs to. Advice about an Excel
     /// formula must not stay up once the user is somewhere else.
     private var guidanceBundleID: String?
@@ -83,12 +96,14 @@ final class GuidanceEngine {
     init(
         provider: any GuidanceProvider = TieredGuidanceProvider(),
         present: @escaping (Guidance) -> Void,
-        dismiss: @escaping () -> Void
+        dismiss: @escaping () -> Void,
+        report: @escaping (String) -> Void = { _ in }
     ) {
         self.provider = provider
         self.providerName = provider.name
         self.present = present
         self.dismiss = dismiss
+        self.report = report
 
         log.notice("engine ready, provider \(provider.name, privacy: .public)")
         if case .unavailable(let reason) = provider.readiness {
@@ -101,6 +116,8 @@ final class GuidanceEngine {
     func stop() {
         work?.cancel()
         work = nil
+        briefingWork?.cancel()
+        briefingWork = nil
     }
 
     // MARK: - Phase
@@ -190,6 +207,98 @@ final class GuidanceEngine {
             try? await Task.sleep(for: self?.settleDelay ?? .seconds(1))
             guard !Task.isCancelled else { return }
             await self?.run(brief)
+        }
+    }
+
+    // MARK: - On demand
+
+    /// Reads whatever is on screen right now and describes it, whether or not
+    /// anything is wrong.
+    ///
+    /// Skips triage on purpose. Triage exists to decide whether interrupting is
+    /// warranted, and a pressed hotkey has already answered that. It also
+    /// ignores the `handled` fingerprint: asking twice about the same screen is
+    /// a reasonable thing to do, and the ambient path's reason for refusing —
+    /// that it would be talking to itself — does not apply to a request.
+    func readScreen(_ context: ScreenContext?) {
+        if case .unavailable(let reason) = provider.readiness {
+            setPhase(.modelUnavailable(reason), detail: reason)
+            report(reason)
+            return
+        }
+
+        guard let context else {
+            report("Nothing on screen to read")
+            return
+        }
+
+        guard let brief = ContextBrief.make(from: context, appetite: .anything) else {
+            // Either an app with no reader, or one that handed over nothing.
+            // Both are worth saying out loud here: the user pressed a key and
+            // is owed an answer, even when the answer is that there isn't one.
+            let supported =
+                ContextBrief.supportedBundleIDs.contains(context.app.bundleID ?? "")
+            log.notice(
+                "briefing declined for \(context.app.name, privacy: .public), supported \(supported, privacy: .public)"
+            )
+            report(
+                supported
+                    ? "\(context.app.name) exposed no text to read"
+                    : "No reader for \(context.app.name)"
+            )
+            return
+        }
+
+        log.notice(
+            """
+            briefing requested for \(context.app.name, privacy: .public), \
+            kind \(brief.kind.rawValue, privacy: .public), \
+            \(brief.text.count, privacy: .public) chars
+            """
+        )
+
+        briefingWork?.cancel()
+        report("Reading \(context.app.name)...")
+        setPhase(.briefing)
+
+        let bundleID = context.app.bundleID
+        briefingWork = Task { [weak self] in
+            await self?.runBriefing(brief, bundleID: bundleID)
+        }
+    }
+
+    private func runBriefing(_ brief: ContextBrief, bundleID: String?) async {
+        let started = ContinuousClock.now
+
+        do {
+            let guidance = try await provider.briefing(for: brief)
+            guidanceDuration = Self.seconds(since: started)
+
+            guard !Task.isCancelled else { return }
+
+            guard let guidance else {
+                setPhase(.quiet("Model declined to describe the screen"))
+                report("Nothing worth saying about this screen")
+                return
+            }
+
+            log.notice(
+                """
+                briefing written by \(guidance.writer ?? "unknown", privacy: .public) \
+                in \(Self.milliseconds(self.guidanceDuration), privacy: .public) ms
+                """
+            )
+
+            lastBrief = brief
+            lastGuidance = guidance
+            guidanceBundleID = bundleID
+            present(guidance)
+            setPhase(.showing)
+        } catch {
+            guard !Task.isCancelled else { return }
+            log.error("briefing failed: \(error.localizedDescription, privacy: .private)")
+            setPhase(.failed(error.localizedDescription), detail: error.localizedDescription)
+            report("Could not read the screen")
         }
     }
 

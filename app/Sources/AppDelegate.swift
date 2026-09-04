@@ -22,16 +22,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let engine = GuidanceEngine(
             provider: TieredGuidanceProvider(),
             present: { overlay.show(guidance: $0) },
-            dismiss: { overlay.clear() }
+            dismiss: { overlay.clear() },
+            report: { overlay.show(status: $0) }
         )
         self.engine = engine
 
         let inspector = InspectorWindowController(coordinator: context, engine: engine)
         self.inspector = inspector
 
+        // Reads the screen as it is now rather than as of the last poll tick,
+        // which can be most of a second stale by the time the key is pressed.
+        let readScreen = { [context] in
+            context.refresh()
+            engine.readScreen(context.current)
+        }
+
         menuBar = MenuBarController(
             engine: engine,
             onToggleOverlay: { overlay.toggle() },
+            onReadScreen: readScreen,
             onRequestPermissions: { Task { await PermissionsManager.shared.requestAll() } },
             onShowInspector: { inspector.show() }
         )
@@ -44,6 +53,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             modifiers: UInt32(cmdKey | optionKey)
         ) {
             overlay.toggle()
+        }
+
+        hotkeys.register(
+            keyCode: UInt32(kVK_ANSI_J),
+            modifiers: UInt32(cmdKey | optionKey)
+        ) {
+            readScreen()
         }
 
         let permissions = PermissionsManager.shared

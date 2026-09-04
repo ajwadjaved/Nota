@@ -91,15 +91,29 @@ extension ContextBrief {
     private static let terminalLineLimit = 40
     private static let textCharacterLimit = 2_000
 
+    /// How much has to be wrong before a screen is worth describing.
+    ///
+    /// The ambient path takes `.problems`, because it speaks without being
+    /// asked and a wrong interruption costs more than a missed one. The hotkey
+    /// takes `.anything`: the user asked, so a working screen is a fair
+    /// question rather than an interruption.
+    enum Appetite {
+        case problems
+        case anything
+    }
+
     /// Returns `nil` when there is nothing worth asking about, which is the
     /// common case and must stay cheap.
-    static func make(from context: ScreenContext) -> ContextBrief? {
+    static func make(
+        from context: ScreenContext,
+        appetite: Appetite = .problems
+    ) -> ContextBrief? {
         guard let kind = kind(for: context.app.bundleID) else { return nil }
 
         let text: String? =
             switch kind {
             case .terminal: terminalText(context)
-            case .spreadsheet: spreadsheetText(context)
+            case .spreadsheet: spreadsheetText(context, appetite: appetite)
             case .generic: genericText(context)
             }
 
@@ -132,7 +146,10 @@ extension ContextBrief {
         return "Terminal, most recent output last:\n\(tail)"
     }
 
-    private static func spreadsheetText(_ context: ScreenContext) -> String? {
+    private static func spreadsheetText(
+        _ context: ScreenContext,
+        appetite: Appetite
+    ) -> String? {
         // The scripted reader gives the formula and the computed value, which is
         // strictly better than anything AX or a screenshot would say about the
         // same cell.
@@ -150,9 +167,15 @@ extension ContextBrief {
         //
         // The cost is that a formula which is wrong but computes cleanly stays
         // invisible. Catching that needs the whole sheet, not one cell.
-        guard let value = context.appFacts.first(where: { $0.label == "Value" })?.value,
-              ExcelError.isError(value)
-        else { return nil }
+        //
+        // None of that applies when the user asked. The reason to stay quiet
+        // was that an unprompted card about a healthy cell is an interruption
+        // built on a guess; a pressed hotkey is neither.
+        if appetite == .problems {
+            guard let value = context.appFacts.first(where: { $0.label == "Value" })?.value,
+                  ExcelError.isError(value)
+            else { return nil }
+        }
 
         let facts = context.appFacts
             .map { "\($0.label): \($0.value)" }

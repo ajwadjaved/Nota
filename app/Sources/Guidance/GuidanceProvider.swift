@@ -25,6 +25,11 @@ extension GuidanceDraft {
     /// The card is 320 points wide and shows a handful of lines.
     static let maximumSteps = 3
 
+    /// A briefing is a todo list rather than a repair, so the same card gets a
+    /// little more room: three is a natural length for "what is broken and how
+    /// to fix it" and a cramped one for "what is in flight right now".
+    static let maximumBriefingSteps = 5
+
     /// Prompts ask for under 80 characters and are routinely ignored, so this
     /// is the limit that actually holds.
     static let stepCharacterLimit = 110
@@ -45,13 +50,17 @@ extension GuidanceDraft {
 
     /// Returns `nil` when nothing survives, which is the model declining to be
     /// specific. A card saying nothing is worse than no card.
-    func card(source: String, writer: String) -> Guidance? {
+    func card(
+        source: String,
+        writer: String,
+        maximumSteps: Int = GuidanceDraft.maximumSteps
+    ) -> Guidance? {
         let title = Self.clean(title).droppingTrailingPeriod
         let surviving =
             steps
             .map(Self.clean)
             .filter(Self.isPlausibleStep)
-            .prefix(Self.maximumSteps)
+            .prefix(maximumSteps)
 
         guard !title.isEmpty, !surviving.isEmpty else { return nil }
 
@@ -114,6 +123,16 @@ protocol GuidanceWriter: Sendable {
     /// which happens often enough to be worth modelling as a real outcome
     /// rather than an error.
     func guidance(for brief: ContextBrief) async throws -> Guidance?
+
+    /// What is happening on this screen, and what is left to do, for a screen
+    /// with nothing wrong on it.
+    ///
+    /// Separate from `guidance` rather than a flag on it because the two are
+    /// asking genuinely different questions. `guidance` assumes a failure is
+    /// present and its whole job is to name the repair; asked about a working
+    /// screen it invents one, which is the failure mode the triage gate exists
+    /// to prevent. This never runs unprompted.
+    func briefing(for brief: ContextBrief) async throws -> Guidance?
 }
 
 /// The seam between the pipeline and the models. A hosted model would implement
